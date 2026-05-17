@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -64,7 +65,7 @@ namespace TreasuryFixTool.Updates
             {
                 ToastManager.ShowToast("TreasuryFixTool",
                     $"USB update on {driveRoot}: no recipe JSON files found.",
-                    6000, ToastManager.ToolTipIcon.Warning);
+                    6000, ToastIcon.Warning);
                 return;
             }
 
@@ -73,7 +74,7 @@ namespace TreasuryFixTool.Updates
             {
                 ToastManager.ShowToast("TreasuryFixTool",
                     $"USB update from {driveRoot}: signature mismatch — import blocked.",
-                    8000, ToastManager.ToolTipIcon.Error);
+                    8000, ToastIcon.Error);
                 _logger?.Warning($"HMAC mismatch on USB update from {driveRoot}.");
                 return;
             }
@@ -88,7 +89,7 @@ namespace TreasuryFixTool.Updates
 
             ToastManager.ShowToast("TreasuryFixTool",
                 $"Imported {recipeFiles.Length} recipe(s) from USB on {driveRoot}.",
-                10000, ToastManager.ToolTipIcon.Info);
+                10000, ToastIcon.Info);
             _logger?.Info($"Imported {recipeFiles.Length} recipe files from {driveRoot}.");
         }
 
