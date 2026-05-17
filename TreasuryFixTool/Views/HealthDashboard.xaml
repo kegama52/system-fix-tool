@@ -1,0 +1,100 @@
+<UserControl x:Class="TreasuryFixTool.Views.HealthDashboard"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="clr-namespace:TreasuryFixTool.Views"
+      Background="#F0F4F8">
+
+    <DockPanel>
+        <!-- Header -->
+        <Border DockPanel.Dock="Top" Background="#1F497D" Padding="16,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🔧 " FontSize="22" VerticalAlignment="Center"/>
+                    <TextBlock Text="TreasuryFixTool — System Health Dashboard"
+                               FontSize="18" FontWeight="Bold"
+                               Foreground="White" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Run Full Scan"
+                        Padding="16,6" Click="RunScan_Click"
+                        Background="#2E75B6" Foreground="White"
+                        BorderThickness="0" Cursor="Hand"
+                        FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom" Background="#E2E8F0" Padding="8,4">
+            <TextBlock x:Name="StatusBarText" Text="Ready"
+                       FontSize="11" Foreground="#475569" FontStyle="Italic"/>
+        </Border>
+
+        <!-- Check Cards -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+            <ItemsControl x:Name="ChecksHost">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Width="320" Margin="0,0,16,16"
+                                Background="White" CornerRadius="8" Padding="16"
+                                BorderBrush="#D1D9E6" BorderThickness="1">
+                            <StackPanel>
+                                <!-- Header row: icon + name + badge -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock x:Name="IconBlock" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock x:Name="NameBlock" Text="{Binding CheckName}"
+                                               FontSize="14" FontWeight="SemiBold"
+                                               Foreground="#1E293B" VerticalAlignment="Center"/>
+                                    <Border x:Name="StatusBadge"
+                                            CornerRadius="4" Padding="6,2"
+                                            HorizontalAlignment="Right">
+                                        <TextBlock x:Name="StatusLabel" Text="{Binding Status}"
+                                                   FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                    </Border>
+                                </StackPanel>
+                                <!-- Message -->
+                                <TextBlock x:Name="MessageBlock" Text="{Binding Message}"
+                                           FontSize="12" Foreground="#475569"
+                                           TextWrapping="Wrap" Margin="0,0,0,8"/>
+                                <!-- Details -->
+                                <ItemsControl ItemsSource="{Binding Details}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,1,0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Key}" FontSize="11"
+                                                           Foreground="#64748B" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Value, StringFormat=  {}{0:F2}}" FontSize="11"
+                                                           Foreground="#334155" Grid.Column="1"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <!-- Fix button -->
+                                <Button x:Name="FixButton" Content="Fix Now" Padding="12,4" Margin="0,8,0,0"
+                                        Click="FixButton_Click"
+                                        Visibility="Collapsed"
+                                        Background="#2E75B6" Foreground="White"
+                                        BorderThickness="0" Cursor="Hand"
+                                        FontWeight="Bold" HorizontalAlignment="Left"/>
+                                <!-- Progress bar (visible during fix) -->
+                                <ProgressBar x:Name="FixProgress" Height="4" Margin="0,6,0,0"
+                                             Visibility="Collapsed" IsIndeterminate="True"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

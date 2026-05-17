@@ -1,0 +1,53 @@
+<Window x:Class="TreasuryFixTool.MainWindow"
+         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:views="clr-namespace:TreasuryFixTool.Views"
+         Title="TreasuryFixTool — National Treasury IT Support"
+         Height="680" Width="960"
+         MinHeight="500" MinWidth="700"
+         WindowStartupLocation="CenterScreen"
+         Background="#EBF0F8">
+
+    <DockPanel LastChildFill="True">
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top" Background="#1F497D" Padding="10,6" Margin="0,0,0,4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="🔧  TreasuryFixTool — National Treasury IT Support Unit"
+                           FontSize="14" FontWeight="Bold"
+                           Foreground="White" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="Run Scan"     Padding="14,4" Margin="0,0,6,0" Click="Scan_Click"
+                            Background="#379237" Foreground="White" BorderThickness="0"
+                            Cursor="Hand" FontWeight="Bold"/>
+                    <Button Content="Request Assistance" Padding="14,4" Click="Escalate_Click"
+                            Background="#C0392B" Foreground="White" BorderThickness="0"
+                            Cursor="Hand" FontWeight="Bold"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Tab Control -->
+        <TabControl x:Name="MainTabControl" Padding="12,8">
+            <TabItem Header="🏥 Health Dashboard" Padding="16,6">
+                <views:HealthDashboard/>
+            </TabItem>
+            <TabItem Header="📊 Diagnostics" Padding="16,6">
+                <views:DiagnosticsView/>
+            </TabItem>
+            <TabItem Header="🚨 Escalation" Padding="16,6">
+                <views:EscalationDialog/>
+            </TabItem>
+        </TabControl>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom" Background="#DDE3EA" Padding="8,3" BorderThickness="0,1,0,0" BorderBrush="#CBD2DA">
+            <TextBlock x:Name="AppStatusBar"
+                       Text="TreasuryFixTool v1.0  |  Offline Mode  |  National Treasury"
+                       FontSize="10" Foreground="#475569"/>
+        </Border>
+    </DockPanel>
+</Window>
