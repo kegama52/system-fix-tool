@@ -1,9 +1,0 @@
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\TreasuryFixTool.csproj.AssemblyReference.cache
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\Views\EscalationDialog.baml
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\MainWindow.g.cs
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\Views\EscalationDialog.g.cs
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\Views\HealthDashboard.g.cs
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\App.g.cs
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\GeneratedInternalTypeHelper.g.cs
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\TreasuryFixTool_MarkupCompile.cache
-C:\Users\kevohtech\Desktop\system\TreasuryFixTool\obj\Debug\net8.0-windows\win-x64\TreasuryFixTool_MarkupCompile.lref

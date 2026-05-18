@@ -70,7 +70,7 @@ public partial class MainWindow : Window
     private async void Scan_Click(object sender, RoutedEventArgs e)
     {
         if (MainTabControl?.SelectedContent is HealthDashboard d)
-            await d.RunScanAsync();
+            await d.RunFullScanAsync();
     }
 
     private void Escalate_Click(object sender, RoutedEventArgs e)

@@ -68,48 +68,99 @@
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border Padding="10,8" Margin="0,0,0,6"
-                                Background="White" CornerRadius="6"
-                                BorderBrush="#D1D9E6" BorderThickness="1">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
-                                               FontSize="11" Foreground="#64748B" FontStyle="Italic"/>
-                                    <TextBlock Text="{Binding CheckName}" FontSize="13"
-                                               FontWeight="SemiBold" Foreground="#1E293B"
-                                               Margin="0,1,0,0"/>
-                                </StackPanel>
-                                <TextBlock Grid.Column="1" Text="{Binding Status}"
-                                           FontSize="11" FontWeight="Bold"
-                                           Foreground="#C0392B"
-                                           VerticalAlignment="Center" Margin="0,0,16,0"/>
-                                <Button Grid.Column="2" Content="Open JSON" Padding="8,3"
-                                        Click="ViewJson_Click"
-                                        Background="#EBF0F8" Foreground="#1F497D"
-                                        BorderBrush="#CBD2DA" BorderThickness="1"
-                                        Cursor="Hand" Tag="{Binding FilePath}"/>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
+                     <DataTemplate>
+                         <Border Padding="10,8" Margin="0,0,0,6"
+                                 Background="White" CornerRadius="6"
+                                 BorderBrush="#D1D9E6" BorderThickness="1">
+                             <StackPanel>
+                                 <!-- Top row: timestamp + severity + team -->
+                                 <StackPanel Orientation="Horizontal">
+                                     <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
+                                                FontSize="11" Foreground="#64748B" FontStyle="Italic"/>
+                                     <Border x:Name="SeverityBadge"
+                                             CornerRadius="3" Padding="4,1 6,1"
+                                             Margin="6,0,0,0" HorizontalAlignment="Left">
+                                         <TextBlock Text="{Binding Severity}"
+                                                    FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                     </Border>
+                                     <TextBlock Text="{Binding Team}" FontSize="10"
+                                                Foreground="#555555"
+                                                Margin="8,0,0,0"
+                                                VerticalAlignment="Center"/>
+                                 </StackPanel>
+                                 <!-- Department name row -->
+                                 <TextBlock Text="{Binding CheckName}" FontSize="13"
+                                            FontWeight="SemiBold" Foreground="#1E293B"
+                                            Margin="0,1,0,0"/>
+                                 <!-- Ticket email row (shown via code-behind when TicketEmail is non-empty) -->
+                                 <StackPanel x:Name="TicketEmailRow" Orientation="Horizontal"
+                                             Margin="0,4,0,0">
+                                     <TextBlock Text="📧" FontSize="12"
+                                                VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                     <TextBlock Text="{Binding TicketEmail}" FontSize="10"
+                                                Foreground="#2980B9" FontFamily="Consolas"
+                                                VerticalAlignment="Center"/>
+                                     <Button Content="Send Update"
+                                             Padding="8,2" Margin="6,0,0,0"
+                                             Click="HistoryMailto_Click"
+                                             Tag="{Binding TicketEmail}"
+                                             Background="#2980B9" Foreground="White"
+                                             BorderThickness="0" Cursor="Hand"
+                                             FontSize="9" FontWeight="SemiBold"/>
+                                 </StackPanel>
+                                 <!-- Button row -->
+                                 <StackPanel Orientation="Horizontal"
+                                             Margin="0,6,0,0">
+                                     <Button Content="Open JSON" Padding="8,3" Margin="0,0,6,0"
+                                             Click="ViewJson_Click"
+                                             Background="#EBF0F8" Foreground="#1F497D"
+                                             BorderBrush="#CBD2DA" BorderThickness="1"
+                                             Cursor="Hand" Tag="{Binding FilePath}"/>
+                                 </StackPanel>
+                             </StackPanel>
+                         </Border>
+                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- Toast / Success banner -->
-        <Border x:Name="SuccessBanner" DockPanel.Dock="Bottom"
-                Background="#27AE60" CornerRadius="6" Padding="14,10" Margin="0,12,0,0"
-                Visibility="Collapsed">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="✅" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <TextBlock x:Name="SuccessText" FontSize="13" FontWeight="SemiBold"
-                           Foreground="White" VerticalAlignment="Center"/>
-            </StackPanel>
-        </Border>
+         <!-- Toast / Success banner -->
+         <Border x:Name="SuccessBanner" DockPanel.Dock="Bottom"
+                 Background="#27AE60" CornerRadius="6" Padding="14,10" Margin="0,12,0,0"
+                 Visibility="Collapsed">
+             <DockPanel>
+                 <StackPanel x:Name="SuccessMsgPanel" DockPanel.Dock="Top" Orientation="Horizontal">
+                     <TextBlock Text="✅" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                     <TextBlock x:Name="SuccessText" FontSize="13" FontWeight="SemiBold"
+                                Foreground="White" VerticalAlignment="Center"/>
+                 </StackPanel>
+                 <!-- Mailto row — visible only while a ticket is active -->
+                 <Border x:Name="TicketEmailRow" Background="#1A6B3A" CornerRadius="4"
+                         Padding="10,7" Margin="0,8,0,0" Visibility="Collapsed">
+                     <Grid>
+                         <Grid.ColumnDefinitions>
+                             <ColumnDefinition Width="Auto"/>
+                             <ColumnDefinition/>
+                             <ColumnDefinition Width="Auto"/>
+                         </Grid.ColumnDefinitions>
+                         <TextBlock Grid.Column="0" Text="📧" FontSize="16"
+                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
+                         <TextBlock Grid.Column="1"
+                                    x:Name="TicketEmailLabel"
+                                    Text="ticket_@support.yourdomain.com"
+                                    FontSize="11" Foreground="#D5F5E3"
+                                    VerticalAlignment="Center" FontFamily="Consolas"/>
+                         <Button Grid.Column="2" x:Name="MailtoBtn"
+                                 Content="Send Email Update"
+                                 Padding="14,4"
+                                 Click="SendEmailUpdate_Click"
+                                 Background="#2ECC71" Foreground="White"
+                                 BorderThickness="0" Cursor="Hand"
+                                 FontSize="11" FontWeight="SemiBold"
+                                 ToolTip="Opens your default email client with fields pre-filled for this ticket"/>
+                     </Grid>
+                 </Border>
+             </DockPanel>
+         </Border>
     </DockPanel>
 </UserControl>

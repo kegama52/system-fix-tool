@@ -10,6 +10,8 @@ namespace TreasuryFixTool.Diagnostics
     public enum CheckStatus
     {
         Healthy,
+        Ok,
+        Info,
         Warning,
         Critical,
         Error
@@ -25,5 +27,6 @@ namespace TreasuryFixTool.Diagnostics
         public string Message { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public Dictionary<string, string> Details { get; set; } = new Dictionary<string, string>();
+        public string? SuggestedFix { get; set; }
     }
 }

@@ -17,6 +17,23 @@ namespace TreasuryFixTool.Infrastructure.Escalation
         public string ToAddress { get; set; } = "ictsupport@nattreasury.gov.za";
         public string SubjectPrefix { get; set; } = "[ICTSU Support]";
         public bool EnableSsl { get; set; } = true;
+        public string? Username { get; set; }
+        public string? Password { get; set; }
+
+        public static EmailNotificationSettings CreateGmailSettings(string email, string appPassword, string recipient, string fromName = "TreasuryFixTool")
+        {
+            return new EmailNotificationSettings
+            {
+                SmtpServer = "smtp.gmail.com",
+                SmtpPort = 587,
+                FromAddress = email,
+                FromName = fromName,
+                ToAddress = recipient,
+                Username = email,
+                Password = appPassword,
+                EnableSsl = true
+            };
+        }
     }
 
     public class EmailNotifier
@@ -52,7 +69,9 @@ TreasuryFixTool Automated Escalation";
                 using var client = new SmtpClient(_settings.SmtpServer, _settings.SmtpPort)
                 {
                     EnableSsl = _settings.EnableSsl,
-                    Credentials = CredentialCache.DefaultNetworkCredentials
+                    Credentials = _settings.Username != null && _settings.Password != null
+                        ? new NetworkCredential(_settings.Username, _settings.Password)
+                        : CredentialCache.DefaultNetworkCredentials
                 };
 
                 var mail = new MailMessage

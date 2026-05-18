@@ -73,7 +73,7 @@ namespace TreasuryFixTool.Views
 
                 var result = BuildEscalationJson();
                 string path = WriteEscalation(result);
-                ShowSuccess($"Ticket generated: {Path.GetFileName(path)}");
+                ShowSuccess($"Ticket generated: {Path.GetFileName(path)}", result.TicketEmail);
                 ToastManager.ShowToast("TreasuryFixTool",
                         "ICTSU ticket saved.",
                         10000, ToastIcon.Info);
@@ -105,6 +105,18 @@ namespace TreasuryFixTool.Views
                             5000, ToastIcon.Warning);
                 return;
             }
+
+            // Extract TicketEmail from the JSON so we can show the mailto row alongside the file
+            string ticketEmail = "";
+            try
+            {
+                string json = File.ReadAllText(filePath);
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("TicketEmail", out var te))
+                    ticketEmail = te.ToString() ?? "";
+            }
+            catch { /* ignore — we still open the file */ }
+
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -114,6 +126,111 @@ namespace TreasuryFixTool.Views
                     UseShellExecute = true
                 });
             });
+
+            if (!string.IsNullOrEmpty(ticketEmail))
+                ShowSuccess($"Viewing: {Path.GetFileName(filePath)}", ticketEmail);
+        }
+
+        // ─── MAILTO HELPERS ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Builds a RFC-3986 compliant mailto: URI for the banner MailtoBtn.
+        /// </summary>
+        private string BuildMailtoUri(string toEmail, string subject, string body)
+        {
+            string Encode(string s) =>
+                Uri.EscapeDataString(s.Replace("\r\n", "\n").Replace("\n", "%0A"));
+
+            return $"mailto:{Encode(toEmail)}?subject={Encode(subject)}&body={Encode(body)}";
+        }
+
+        /// <summary>
+        /// Default body template used when the user clicks "Send Email Update".
+        /// </summary>
+        private static string DefaultEmailBody(string ticketEmail, string ticketId, string? issues = null)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Hi,");
+            sb.AppendLine();
+            sb.AppendLine($"This is an update regarding support ticket {ticketId}.");
+            sb.AppendLine($"Ticket tracking address: {ticketEmail}");
+            sb.AppendLine();
+            if (!string.IsNullOrEmpty(issues))
+            {
+                sb.AppendLine("Issue description:");
+                sb.AppendLine(issues);
+                sb.AppendLine();
+            }
+            sb.AppendLine("Please reply to this thread with any additional information or questions.");
+            sb.AppendLine();
+            sb.AppendLine("Thank you,");
+            sb.AppendLine("ICT Support Team");
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Opens the user's default email client (via the OS shell) with
+        /// the ticket email address, subject line, and body template pre-filled.
+        /// </summary>
+        private void OpenMailto(string toEmail, string subject, string body)
+        {
+            try
+            {
+                string uri = BuildMailtoUri(toEmail, subject, body);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName  = uri,
+                    UseShellExecute = true
+                });
+                ToastManager.ShowToast("Email",
+                    "Default email client opened.", 4000, ToastIcon.Info);
+            }
+            catch (Exception ex)
+            {
+                ToastManager.ShowToast("Email",
+                    $"Failed to open mail client: {ex.Message}", 8000, ToastIcon.Error);
+                _logger.Error("Failed to open mailto link.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Click handler for the "Send Email Update" button in the success banner.
+        /// Reads the current TicketEmail label and fires the mailto URI.
+        /// </summary>
+        private void SendEmailUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            if (TicketEmailLabel == null || string.IsNullOrEmpty(TicketEmailLabel.Text))
+            {
+                ToastManager.ShowToast("Escalation",
+                    "No ticket email available. Generate a ticket first.", 6000, ToastIcon.Warning);
+                return;
+            }
+
+            string ticketEmail = TicketEmailLabel.Text.Trim();
+            string ticketId    = ticketEmail.Replace($"@{SupportDomain}", "").Replace("ticket_", "");
+            string subject     = $"Update to Ticket #{ticketId}: TreasuryFixTool Escalation";
+            string body        = DefaultEmailBody(ticketEmail, ticketId, null);
+
+            OpenMailto(ticketEmail, subject, body);
+        }
+
+        /// <summary>
+        /// Click handler for the "Send Update" button on each history row.
+        /// </summary>
+        private void HistoryMailto_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: string ticketEmail } || string.IsNullOrEmpty(ticketEmail))
+            {
+                ToastManager.ShowToast("Escalation",
+                    "No ticket email associated with this entry.", 6000, ToastIcon.Warning);
+                return;
+            }
+
+            string ticketId = ticketEmail.Replace($"@{SupportDomain}", "").Replace("ticket_", "");
+            string subject  = $"Update to Ticket #{ticketId}: TreasuryFixTool Escalation";
+            string body     = DefaultEmailBody(ticketEmail, ticketId, null);
+
+            OpenMailto(ticketEmail, subject, body);
         }
 
         private void ExportLogs_Click(object sender, RoutedEventArgs e)
@@ -156,17 +273,21 @@ namespace TreasuryFixTool.Views
 
         private string ExportAsJson(List<LogFileEntry> logs)
         {
-            var export = new { Exported = DateTime.Now, Logs = logs.Select(l => new { File = l.File, Content = l.Content }) };
+            var export = new {
+                Exported       = DateTime.Now,
+                SupportDomain  = SupportDomain,
+                Logs           = logs.Select(l => new { l.File, l.Content })
+            };
             return JsonSerializer.Serialize(export, new JsonSerializerOptions { WriteIndented = true });
         }
 
         private string ExportAsCsv(List<LogFileEntry> logs)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("File,Timestamp,Content");
+            sb.AppendLine("File,Timestamp,SupportDomain,TicketEmail");
             foreach (var l in logs)
             {
-                sb.AppendLine($"\"{l.File}\",\"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\",\"{l.Content.Replace("\"", "\"\"")}\"");
+                sb.AppendLine($"\"{l.File}\",\"{DateTime.Now:yyyy-MM-dd HH:mm:ss}\",\"{SupportDomain}\",\"ticket_placeholder@{SupportDomain}\"");
             }
             return sb.ToString();
         }
@@ -187,7 +308,8 @@ namespace TreasuryFixTool.Views
                 OsVersion    = Environment.OSVersion.ToString(),
                 Timestamp    = DateTime.Now,
                 Issues       = issues,
-                RequestedFix = true
+                RequestedFix = true,
+                TicketEmail  = GenerateTicketEmail(DateTime.Now.ToString("yyyyMMddHHmmss"))
             };
         }
 
@@ -196,8 +318,10 @@ namespace TreasuryFixTool.Views
             string dir = DataPaths.EscalationsDirectory;
             Directory.CreateDirectory(dir);
 
-            string fileName = $"ICTSU_Support_{Environment.MachineName}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
-            string filePath = Path.Combine(dir, fileName);
+            // File name embeds the TicketEmail handle for traceability
+            string safeEmail = payload.TicketEmail.Replace('@', '_').Replace('.', '_');
+            string fileName  = $"ICTSU_Support_{safeEmail}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+            string filePath  = Path.Combine(dir, fileName);
 
             string json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(filePath, json);
@@ -205,15 +329,23 @@ namespace TreasuryFixTool.Views
             return filePath;
         }
 
-        private void ShowSuccess(string msg)
+        private void ShowSuccess(string msg, string? ticketEmail = null)
         {
             SuccessText.Text         = msg;
             SuccessBanner.Visibility = Visibility.Visible;
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+
+            if (!string.IsNullOrEmpty(ticketEmail) && TicketEmailRow != null && TicketEmailLabel != null)
+            {
+                TicketEmailLabel.Text   = ticketEmail;
+                TicketEmailRow.Visibility = Visibility.Visible;
+            }
+
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
             timer.Tick += (_, _) =>
             {
                 timer.Stop();
                 SuccessBanner.Visibility = Visibility.Collapsed;
+                if (TicketEmailRow != null) TicketEmailRow.Visibility = Visibility.Collapsed;
             };
             timer.Start();
         }
@@ -240,13 +372,15 @@ namespace TreasuryFixTool.Views
                         string dept    = root.TryGetProperty("Department", out var d)   ? d.ToString() : "?";
                         string ts      = root.TryGetProperty("Timestamp", out var t)   ? t.ToString() : Path.GetFileNameWithoutExtension(f);
                         string status  = root.TryGetProperty("RequestedFix", out var r) && r.GetBoolean() ? "Fix Required" : "Escalation";
+                        string tktEmail= root.TryGetProperty("TicketEmail", out var te)  ? te.ToString() : "";
                         return new EscalationHistoryItem
                         {
                             FilePath     = f,
                             Department   = dept,
                             Timestamp    = DateTime.TryParse(ts, out var dt) ? dt : DateTime.MinValue,
                             CheckName    = dept,
-                            Status       = status
+                            Status       = status,
+                            TicketEmail  = tktEmail
                         };
                     }
                     catch { return null; }
@@ -283,6 +417,19 @@ namespace TreasuryFixTool.Views
             }
         }
 
+        /// <summary>
+        /// Unique inbound ticket-email domain already set to "nattreasury.gov.za".
+        /// Format for every ticket: ticket_{TICKET_ID}@nattreasury.gov.za
+        /// </summary>
+        public const string SupportDomain = "nattreasury.gov.za";
+
+        /// <summary>
+        /// Generates the unique, trackable email address for a given ticket id.
+        /// Format: ticket_{ticketId}@nattreasury.gov.za
+        /// </summary>
+        public static string GenerateTicketEmail(string ticketId)
+            => $"ticket_{ticketId}@{SupportDomain}";
+
         private class EscalationPayload
         {
             public string Department   { get; set; } = string.Empty;
@@ -292,6 +439,9 @@ namespace TreasuryFixTool.Views
             public DateTime Timestamp  { get; set; }
             public List<string> Issues { get; set; } = new();
             public bool RequestedFix   { get; set; }
+
+            /// <summary>Unique inbound address generated for this ticket: ticket_{id}@nattreasury.gov.za</summary>
+            public string TicketEmail  { get; set; } = string.Empty;
         }
 
         private class EscalationHistoryItem
@@ -301,6 +451,8 @@ namespace TreasuryFixTool.Views
             public DateTime    Timestamp   { get; set; }
             public string      CheckName   { get; set; } = string.Empty;
             public string      Status      { get; set; } = string.Empty;
+            /// <summary>Mailto address assigned to this ticket (for replay / follow-up).</summary>
+            public string      TicketEmail { get; set; } = string.Empty;
         }
     }
 }
