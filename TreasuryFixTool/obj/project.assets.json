@@ -133,9 +133,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\kevohtech\\Desktop\\system\\TreasuryFixTool\\TreasuryFixTool.csproj",
+      "projectUniqueName": "c:\\Users\\kevohtech\\Desktop\\system\\TreasuryFixTool\\TreasuryFixTool_n1ccjekr_wpftmp.csproj",
       "projectName": "TreasuryFixTool",
-      "projectPath": "C:\\Users\\kevohtech\\Desktop\\system\\TreasuryFixTool\\TreasuryFixTool.csproj",
+      "projectPath": "c:\\Users\\kevohtech\\Desktop\\system\\TreasuryFixTool\\TreasuryFixTool_n1ccjekr_wpftmp.csproj",
       "packagesPath": "C:\\Users\\kevohtech\\.nuget\\packages\\",
       "outputPath": "C:\\Users\\kevohtech\\Desktop\\system\\TreasuryFixTool\\obj\\",
       "projectStyle": "PackageReference",
