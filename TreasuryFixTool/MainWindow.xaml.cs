@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Threading;
 using TreasuryFixTool.Diagnostics;
 using TreasuryFixTool.Fixes;
+using TreasuryFixTool.Infrastructure;
 using TreasuryFixTool.Infrastructure.Config;
 using TreasuryFixTool.Infrastructure.Escalation;
 using TreasuryFixTool.Infrastructure.Logging;
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
     private readonly UsbUpdateHandler?   _usbHandler;
     private TrayManager?        _trayManager;
     private BackgroundMonitor?  _monitor;
+    private SelfTestService?    _selfTest;
 
     public MainWindow()
     {
@@ -36,6 +38,7 @@ public partial class MainWindow : Window
         _config    = new AppConfig();
         _updateMgr = new UpdateManager();
         _usbHandler= new UsbUpdateHandler();
+        _selfTest  = new SelfTestService(_logger);
 
         AppStatusBar.Text = $"TreasuryFixTool v1.0  |  {Environment.MachineName}  |  Offline Mode — National Treasury";
 
@@ -80,5 +83,59 @@ public partial class MainWindow : Window
             tc.SelectedIndex = 1;
             ToastManager.ShowToast("TreasuryFixTool", "Describe your issue, then click Generate Ticket.", 6000, ToastIcon.Info);
         }
+    }
+
+    private async void RunSelfTests_Click(object sender, RoutedEventArgs e)
+    {
+        AppStatusBar.Text = "Running self-diagnostics...";
+
+        var outputBox = FindName("TestOutputBox") as TextBox;
+        if (outputBox == null) return;
+
+        try
+        {
+            await Task.Run(async () =>
+            {
+                await _selfTest!.RunSelfTestsAsync(msg =>
+                    Dispatcher.Invoke(() =>
+                    {
+                        outputBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {msg}{Environment.NewLine}");
+                        outputBox.ScrollToEnd();
+                    }));
+            });
+
+            AppStatusBar.Text = "Self-diagnostics complete.";
+            ToastManager.ShowToast("TreasuryFixTool", "Self-tests finished. Check logs for details.", 4000, ToastIcon.Success);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Self-test pipeline failed", ex);
+            ToastManager.ShowToast("TreasuryFixTool", $"Test failed: {ex.Message}", 5000, ToastIcon.Error);
+        }
+    }
+
+    private async void RunFix_Click(object sender, RoutedEventArgs e)
+    {
+        await RunAutoResolveInternal("netsh winsock reset", sender);
+    }
+
+    private async Task RunAutoResolveInternal(string command, object sender)
+    {
+        AppStatusBar.Text = $"Applying fix: {command}...";
+
+        var outputBox = FindName("TestOutputBox") as TextBox;
+        if (outputBox == null) return;
+
+        await Task.Run(async () =>
+        {
+            await _selfTest!.RunAutoResolveAsync(command, msg =>
+                Dispatcher.Invoke(() =>
+                {
+                    outputBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {msg}{Environment.NewLine}");
+                    outputBox.ScrollToEnd();
+                }));
+        });
+
+        AppStatusBar.Text = "Fix execution complete.";
     }
 }
