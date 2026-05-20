@@ -14,5 +14,6 @@ namespace TreasuryFixTool.Infrastructure.Config
         public bool    StartWithWindows  { get; set; } = false;
         public bool    SilentStart       { get; set; } = false;
         public string  Version           { get; set; } = "1.0.0";
+        public DateTime LastScanTime     { get; set; }
     }
 }

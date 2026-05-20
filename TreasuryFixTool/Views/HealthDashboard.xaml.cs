@@ -12,6 +12,7 @@ using System.Windows.Threading;
 using System.Threading.Tasks;
 using TreasuryFixTool.Diagnostics;
 using TreasuryFixTool.Fixes;
+using TreasuryFixTool.Infrastructure.Storage;
 using TreasuryFixTool.Notifications;
 using TreasuryFixTool.SystemTray;
 using TreasuryFixTool.Views;
@@ -885,6 +886,44 @@ namespace TreasuryFixTool.Views
                 5000, ToastIcon.Warning);
         }
 
+        private void SendUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: DateTime timestamp }) return;
+            var item = _activeEscalations.FirstOrDefault(i => i.Timestamp == timestamp);
+            if (item == null) return;
+
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Text Files|*.txt",
+                FileName = $"Update_{timestamp:yyyyMMdd_HHmmss}.txt"
+            };
+
+            if (dialog.ShowDialog() != true) return;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("═══════════════════════════════════════════");
+            sb.AppendLine("  TICKET UPDATE");
+            sb.AppendLine($"  Timestamp : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"  Original  : {timestamp:yyyy-MM-dd HH:mm:ss}");
+            sb.AppendLine($"  Team      : {item.Team}");
+            sb.AppendLine($"  Severity  : {item.Severity}");
+            sb.AppendLine("═══════════════════════════════════════════\n");
+            sb.AppendLine("UPDATE NOTES:");
+            sb.AppendLine("\n[Enter your update notes here]");
+            sb.AppendLine();
+            sb.AppendLine("═══════════════════════════════════════════");
+
+            System.IO.File.WriteAllText(dialog.FileName, sb.ToString());
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = dialog.FileName,
+                UseShellExecute = true
+            });
+
+            ToastManager.ShowToast("Update Created",
+                $"Update template saved. Open the file to add notes and send.", 5000, ToastIcon.Info);
+        }
+
         private void ResolveEscalation_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button { Tag: EscalationItem item }) return;
@@ -989,6 +1028,167 @@ namespace TreasuryFixTool.Views
             {
                 _refreshTimer.Stop();
                 _escalationAutoRefresh.Stop();
+            }
+        }
+
+        /// <summary>Quick Support Actions button handlers</summary>
+        private async void CallAssistant_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var phone = "tel:1234";
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = phone,
+                    UseShellExecute = true
+                });
+                ToastManager.ShowToast("Calling IT Assistant", "Dialing IT Support extension 1234...", 4000, ToastIcon.Info);
+            }
+            catch (Exception ex)
+            {
+                ToastManager.ShowToast("Error", $"Could not place call: {ex.Message}", 5000, ToastIcon.Warning);
+            }
+        }
+
+        private async void LiveChat_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var chatUrl = "https://teams.microsoft.com/l/chat/0/0?users=itsupport@treasury.gov.za";
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = chatUrl,
+                    UseShellExecute = true
+                });
+                await Task.Delay(1000);
+                ToastManager.ShowToast("Live Chat", "Opening chat with IT Support team...", 4000, ToastIcon.Info);
+            }
+            catch (Exception ex)
+            {
+                ToastManager.ShowToast("Error", $"Could not open chat: {ex.Message}", 5000, ToastIcon.Error);
+            }
+        }
+
+        private void PrintIssues_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Text Files|*.txt|PDF Files|*.pdf",
+                    FileName = $"TreasuryFix_Issues_{DateTime.Now:yyyyMMdd_HHmmss}"
+                };
+                if (dialog.ShowDialog() != true) return;
+                var sb = new StringBuilder();
+                sb.AppendLine("═══════════════════════════════════════════════════");
+                sb.AppendLine("    TREASURYFIXTOOL - SYSTEM ISSUES REPORT");
+                sb.AppendLine("═══════════════════════════════════════════════════\n");
+                sb.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                sb.AppendLine($"Machine: {Environment.MachineName}");
+                sb.AppendLine($"User: {Environment.UserName}");
+                sb.AppendLine($"OS: {Environment.OSVersion}\n");
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine("SYSTEM HEALTH STATUS:");
+                sb.AppendLine("───────────────────────────────────────────────────\n");
+                sb.AppendLine($"Machine Name: {Environment.MachineName}");
+                sb.AppendLine($"OS Version: {Environment.OSVersion}");
+                sb.AppendLine($"Processors: {Environment.ProcessorCount}");
+                var uptime = TimeSpan.FromMilliseconds(Environment.TickCount64);
+                sb.AppendLine($"System Uptime: {uptime.Days}d {uptime.Hours}h {uptime.Minutes}m\n");
+                sb.AppendLine("───────────────────────────────────────────────────");
+                sb.AppendLine("RECENT LOG ENTRIES:");
+                sb.AppendLine("───────────────────────────────────────────────────\n");
+                var logsDir = System.IO.Path.Combine(DataPaths.LogsDirectory);
+                if (Directory.Exists(logsDir))
+                {
+                    var recentLogs = Directory.GetFiles(logsDir, "*.log")
+                        .OrderByDescending(f => File.GetCreationTime(f))
+                        .Take(3);
+                    foreach (var logFile in recentLogs)
+                    {
+                        sb.AppendLine($"Log File: {System.IO.Path.GetFileName(logFile)}");
+                        try
+                        {
+                            var lines = File.ReadLines(logFile).Take(20);
+                            foreach (var line in lines) sb.AppendLine(line);
+                        }
+                        catch { }
+                        sb.AppendLine();
+                    }
+                }
+                System.IO.File.WriteAllText(dialog.FileName, sb.ToString());
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = dialog.FileName,
+                    UseShellExecute = true
+                });
+                ToastManager.ShowToast("Report Generated",
+                    $"Issues report saved to: {System.IO.Path.GetFileName(dialog.FileName)}", 5000, ToastIcon.Info);
+            }
+            catch (Exception ex)
+            {
+                ToastManager.ShowToast("Error", $"Failed to generate report: {ex.Message}", 5000, ToastIcon.Error);
+            }
+        }
+
+        private async void EmailSupport_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var subject = Uri.EscapeDataString($"Support Request - {Environment.MachineName}");
+                var body = Uri.EscapeDataString($@"
+Dear IT Support,
+
+I am experiencing technical issues and require assistance.
+
+System Information:
+- Machine: {Environment.MachineName}
+- User: {Environment.UserName}
+- OS: {Environment.OSVersion}
+- Time: {DateTime.Now}
+
+Issue Description:
+[Please describe your issue here]
+
+Regards,
+{Environment.UserName}
+");
+                var mailTo = $"mailto:itsupport@treasury.gov.za?subject={subject}&body={body}";
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = mailTo,
+                    UseShellExecute = true
+                });
+                await Task.Delay(1000);
+                ToastManager.ShowToast("Email Support", "Opening email client...", 4000, ToastIcon.Info);
+            }
+            catch
+            {
+                ToastManager.ShowToast("Error", "Could not open email client. Please contact IT Support directly.", 5000, ToastIcon.Error);
+            }
+        }
+
+private void RemoteSession_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start("quickassist");
+                ToastManager.ShowToast("Remote Session",
+                    "Opening Quick Assist. Share your screen code with IT Support.", 6000, ToastIcon.Info);
+            }
+            catch
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start("mstsc");
+                    ToastManager.ShowToast("Remote Desktop",
+                        "Opening Remote Desktop Connection. Contact IT for server details.", 6000, ToastIcon.Info);
+                }
+                catch
+                {
+                    ToastManager.ShowToast("Error",
+                        "Remote tools not available. Please call IT Support at extension 1234.", 5000, ToastIcon.Error);
+                }
             }
         }
 

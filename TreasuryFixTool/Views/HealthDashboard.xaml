@@ -81,6 +81,42 @@
 
         <StackPanel>
 
+          <!-- ── QUICK ACTIONS PANEL ── -->
+          <Border Background="White" CornerRadius="10" Padding="20"
+                  Margin="0,0,0,20" BorderBrush="#E0E0E0" BorderThickness="1">
+            <StackPanel>
+              <TextBlock Text="Quick Support Actions" FontWeight="Bold" FontSize="16"
+                        Margin="0,0,0,15" Foreground="#1565C0"/>
+              <WrapPanel>
+                <Button Content="📞 Call IT Assistant" Click="CallAssistant_Click"
+                        Background="#1976D2" Foreground="White"
+                        Padding="20,12" Margin="0,0,10,10"
+                        BorderThickness="0" Cursor="Hand" FontWeight="SemiBold"
+                        Width="200" Height="50"/>
+                <Button Content="💬 Live Chat Support" Click="LiveChat_Click"
+                        Background="#388E3C" Foreground="White"
+                        Padding="20,12" Margin="0,0,10,10"
+                        BorderThickness="0" Cursor="Hand" FontWeight="SemiBold"
+                        Width="200" Height="50"/>
+                <Button Content="🖨️ Print Issues Report" Click="PrintIssues_Click"
+                        Background="#7B1FA2" Foreground="White"
+                        Padding="20,12" Margin="0,0,10,10"
+                        BorderThickness="0" Cursor="Hand" FontWeight="SemiBold"
+                        Width="200" Height="50"/>
+                <Button Content="📧 Email Support" Click="EmailSupport_Click"
+                        Background="#F57C00" Foreground="White"
+                        Padding="20,12" Margin="0,0,10,10"
+                        BorderThickness="0" Cursor="Hand" FontWeight="SemiBold"
+                        Width="200" Height="50"/>
+                <Button Content="🖥️ Request Remote Session" Click="RemoteSession_Click"
+                        Background="#0097A7" Foreground="White"
+                        Padding="20,12" Margin="0,0,10,10"
+                        BorderThickness="0" Cursor="Hand" FontWeight="SemiBold"
+                        Width="200" Height="50"/>
+              </WrapPanel>
+            </StackPanel>
+          </Border>
+
           <!-- ── ROW 1: METRIC CARDS (4×2 wrap panel) ── -->
           <TextBlock Text="System Overview"
                      FontSize="13"
@@ -195,25 +231,36 @@
                                        TextWrapping="Wrap"
                                        LineHeight="16"/>
                           </StackPanel>
-                          <StackPanel Grid.Column="1"
-                                      Orientation="Horizontal"
-                                      VerticalAlignment="Center">
-                            <Button Content="✓ Acknowledge"
-                                    Padding="8,3"
-                                    Margin="0,0,4,0"
-                                    Click="AcknowledgeEscalation_Click"
-                                    Tag="{Binding .}"
-                                    Background="#27AE60"
-                                    Foreground="White"
-                                    BorderThickness="0"
-                                    Cursor="Hand"
-                                    FontSize="10"
-                                    FontWeight="SemiBold"/>
-                            <Button Content="✓ Resolve"
-                                    Padding="8,3"
-                                    Click="ResolveEscalation_Click"
-                                    Tag="{Binding .}"
-                                    Background="#2980B9"
+<StackPanel Grid.Column="1"
+                                       Orientation="Horizontal"
+                                       VerticalAlignment="Center">
+                             <Button Content="Send Update"
+                                     Padding="8,3"
+                                     Margin="0,0,4,0"
+                                     Click="SendUpdate_Click"
+                                     Tag="{Binding Timestamp}"
+                                     Background="#1976D2"
+                                     Foreground="White"
+                                     BorderThickness="0"
+                                     Cursor="Hand"
+                                     FontSize="10"
+                                     FontWeight="SemiBold"/>
+                             <Button Content="✓ Acknowledge"
+                                     Padding="8,3"
+                                     Margin="0,0,4,0"
+                                     Click="AcknowledgeEscalation_Click"
+                                     Tag="{Binding .}"
+                                     Background="#27AE60"
+                                     Foreground="White"
+                                     BorderThickness="0"
+                                     Cursor="Hand"
+                                     FontSize="10"
+                                     FontWeight="SemiBold"/>
+                             <Button Content="✓ Resolve"
+                                     Padding="8,3"
+                                     Click="ResolveEscalation_Click"
+                                     Tag="{Binding .}"
+                                     Background="#2980B9"
                                     Foreground="White"
                                     BorderThickness="0"
                                     Cursor="Hand"

@@ -15,14 +15,27 @@ public class BackgroundMonitor : IDisposable
     private readonly DispatcherTimer _timer;
     private readonly DiagnosticEngine _diagnosticEngine;
     private readonly TrayManager? _trayManager;
+    private readonly Action? _onUsbScan;
+    private readonly int _usbScanIntervalCycles;
+    private int _elapsedCycles;
     private bool _disposed;
 
+    /// <summary>
+    /// Creates a new background monitor.
+    /// </summary>
+    /// <param name="diagnosticEngine">Used for running diagnostic checks.</param>
+    /// <param name="trayManager">Optional tray icon manager for balloon alerts.</param>
+    /// <param name="onUsbScan">Optional callback invoked every <paramref name="usbScanIntervalCycles"/> monitoring pulses to scan for USB removable-drive updates.</param>
+    /// <param name="usbScanIntervalCycles">How many monitoring cycles must elapse before <paramref name="onUsbScan"/> fires.</param>
     public int IntervalSeconds { get; set; } = 30;
 
-    public BackgroundMonitor(DiagnosticEngine diagnosticEngine, TrayManager? trayManager = null)
+    public BackgroundMonitor(DiagnosticEngine diagnosticEngine, TrayManager? trayManager = null, Action? onUsbScan = null, int usbScanIntervalCycles = 4)
     {
-        _diagnosticEngine = diagnosticEngine ?? throw new ArgumentNullException(nameof(diagnosticEngine));
-        _trayManager      = trayManager;
+        _diagnosticEngine   = diagnosticEngine   ?? throw new ArgumentNullException(nameof(diagnosticEngine));
+        _trayManager        = trayManager;
+        _onUsbScan          = onUsbScan;
+        _usbScanIntervalCycles = usbScanIntervalCycles == 0 ? 1 : usbScanIntervalCycles;
+        _elapsedCycles = 0;
         _timer = new DispatcherTimer(DispatcherPriority.Background);
         _timer.Tick += async (_, _) => await CheckAndAlertAsync();
     }
@@ -39,6 +52,15 @@ public class BackgroundMonitor : IDisposable
     {
         try
         {
+            // ── Periodic USB removable-drive scan ──────────────────────────
+            _elapsedCycles++;
+            if (_elapsedCycles >= _usbScanIntervalCycles)
+            {
+                _elapsedCycles = 0;
+                try { _onUsbScan?.Invoke(); } catch { /* USB scan errors are non-fatal */ }
+            }
+
+            // ── Diagnostic checks ──────────────────────────────────────────
             var results = _diagnosticEngine.RunAllChecks();
             var criticalOrWarn = results.FindAll(r
                 => r.Status == CheckStatus.Critical || r.Status == CheckStatus.Warning);

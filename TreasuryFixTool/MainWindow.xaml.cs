@@ -1,9 +1,21 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Net;
+using System.Net.Mail;
+using System.Text;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Media;
 using System.Windows.Threading;
+using Microsoft.Extensions.Configuration;
+using TreasuryFixTool.Data;
 using TreasuryFixTool.Diagnostics;
 using TreasuryFixTool.Fixes;
 using TreasuryFixTool.Infrastructure;
@@ -16,6 +28,7 @@ using TreasuryFixTool.Notifications;
 using TreasuryFixTool.SystemTray;
 using TreasuryFixTool.Views;
 using TreasuryFixTool.Updates;
+using TreasuryFixTool.Models;
 
 namespace TreasuryFixTool;
 
@@ -28,13 +41,31 @@ public partial class MainWindow : Window
     private TrayManager?        _trayManager;
     private BackgroundMonitor?  _monitor;
     private SelfTestService?    _selfTest;
+    private List<string>       _attachedFiles    = new();
+    private DiagnosticEngine?  _diagnosticEngine;
+
+    private readonly TicketRepository _ticketRepo;
+    private readonly IConfiguration _dbConfig;
 
     public MainWindow()
     {
         InitializeComponent();
 
-        _logger    = new(Path.Combine(DataPaths.LogsDirectory,
-                         $"TreasuryFix_{DateTime.Now:yyyyMMdd_HHmmss}.log"));
+        // Initialize database configuration
+        _dbConfig = new ConfigurationBuilder()
+            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+
+        string connStr = _dbConfig["Database:ConnectionString"] 
+            ?? throw new InvalidOperationException("Database connection string missing in appsettings.json");
+        _ticketRepo = new TicketRepository(connStr);
+
+        // Initialize database
+        _ = InitializeDatabaseAsync();
+
+        _logger    = new(System.IO.Path.Combine(DataPaths.LogsDirectory,
+                          $"TreasuryFix_{DateTime.Now:yyyyMMdd_HHmmss}.log"));
         _config    = new AppConfig();
         _updateMgr = new UpdateManager();
         _usbHandler= new UsbUpdateHandler();
@@ -43,31 +74,20 @@ public partial class MainWindow : Window
         AppStatusBar.Text = $"TreasuryFixTool v1.0  |  {Environment.MachineName}  |  Offline Mode — National Treasury";
 
         AttachTrayIfInSilentMode();
+        InitializeEscalationTab();
     }
 
-    private void AttachTrayIfInSilentMode()
+    private async Task InitializeDatabaseAsync()
     {
-        string[] args = Environment.GetCommandLineArgs();
-        bool silent   = Array.Exists(args, a
-                            => a.Equals("/silent-start", StringComparison.OrdinalIgnoreCase));
-        if (!silent) return;
-
-        _trayManager = new TrayManager(this);
-
-        // Attach tray banner inside the main window's content grid
-        if (FindName("MainTabControl") is TabControl tc)
-            _trayManager.AttachTo(tc.Parent as Grid);
-
-        _monitor = new BackgroundMonitor(new DiagnosticEngine(), _trayManager);
-        _monitor.Start();
-
-        Task.Run(async () =>
+        try
         {
-            await Task.Delay(2000);
-            Dispatcher.Invoke(() => _trayManager?.Alert("Background health check running…"));
-        });
-
-        Hide();
+            await _ticketRepo.InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to initialize database", ex);
+            // Don't throw here - allow app to continue in case DB is not available yet
+        }
     }
 
     private async void Scan_Click(object sender, RoutedEventArgs e)
@@ -105,7 +125,7 @@ public partial class MainWindow : Window
             });
 
             AppStatusBar.Text = "Self-diagnostics complete.";
-            ToastManager.ShowToast("TreasuryFixTool", "Self-tests finished. Check logs for details.", 4000, ToastIcon.Success);
+            ToastManager.ShowToast("TreasuryFixTool", "Self-tests finished. Check logs for details.", 4000, ToastIcon.Info);
         }
         catch (Exception ex)
         {
@@ -137,5 +157,438 @@ public partial class MainWindow : Window
         });
 
         AppStatusBar.Text = "Fix execution complete.";
+    }
+
+    // ─── Silent-start ──────────────────────────────────────────────────────
+    private void AttachTrayIfInSilentMode()
+    {
+        string[] args = Environment.GetCommandLineArgs();
+        bool silent   = Array.Exists(args, a
+                                => a.Equals("/silent-start", StringComparison.OrdinalIgnoreCase));
+        if (!silent) return;
+
+        _trayManager = new TrayManager(this);
+
+        // Attach tray banner inside the main window's content grid
+        if (FindName("MainTabControl") is TabControl tc)
+            _trayManager.AttachTo(tc.Parent as Grid);
+
+        _monitor = new BackgroundMonitor(new DiagnosticEngine(), _trayManager);
+        _monitor.Start();
+
+        Task.Run(async () =>
+        {
+            await Task.Delay(2000);
+            Dispatcher.Invoke(() => _trayManager?.Alert("Background health check running…"));
+        });
+
+        Hide();
+    }
+
+    // ─── Escalation tab ────────────────────────────────────────────────────
+    private void InitializeEscalationTab()
+    {
+        LoadSystemInformation();
+        _diagnosticEngine = new DiagnosticEngine();
+    }
+
+    // ─── System Information ───────────────────────────────────────────────────
+    private void LoadSystemInformation()
+    {
+        try
+        {
+            SysMachineName.Text = Environment.MachineName;
+            SysOSVersion.Text   = Environment.OSVersion.ToString();
+            SysIPAddress.Text   = GetLocalIpAddress() ?? "Unknown";
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to load system information", ex);
+            SysMachineName.Text = "—";
+            SysOSVersion.Text   = "—";
+            SysIPAddress.Text   = "—";
+        }
+    }
+
+    private static string? GetLocalIpAddress()
+    {
+        try
+        {
+            var host  = Dns.GetHostAddressesAsync(Dns.GetHostName()).Result;
+            var ipv4  = host.FirstOrDefault(h => h.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+            return ipv4?.ToString();
+        }
+        catch { return null; }
+    }
+
+    // ─── Escalation quick actions ─────────────────────────────────────────────
+
+    private void ExportLogs_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string exportDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Desktop");
+            string zipPath   = Path.Combine(exportDir, $"TreasuryLogs_{Environment.MachineName}_{DateTime.Now:yyyyMMdd_HHmmss}.zip");
+
+            if (!Directory.Exists(DataPaths.LogsDirectory))
+            {
+                ToastManager.ShowToast("Export Failed", "Logs directory not found.", 4000, ToastIcon.Error);
+                return;
+            }
+
+            var files = Directory.GetFiles(DataPaths.LogsDirectory, "*.*",
+                            SearchOption.TopDirectoryOnly)
+                        .Where(f => !f.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                        .ToArray();
+
+            if (files.Length == 0)
+            {
+                ToastManager.ShowToast("No Logs", "No log files found to export.", 4000, ToastIcon.Warning);
+                return;
+            }
+
+            ZipFile.CreateFromDirectory(DataPaths.LogsDirectory, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+
+            ToastManager.ShowToast("Logs Exported",
+                $"{files.Length} file(s) saved to:\n{zipPath}", 6000, ToastIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to export logs", ex);
+            ToastManager.ShowToast("Export Error", ex.Message, 4000, ToastIcon.Error);
+        }
+    }
+
+    private async void GenerateTicket_Click(object sender, RoutedEventArgs e)
+    {
+        var escMgr = new EscalationManager(DataPaths.EscalationsDirectory, _logger);
+        var checks = new ObservableCollection<CheckResult>
+        {
+            new CheckResult
+            {
+                CheckName = "All Issues",
+                Status    = CheckStatus.Info,
+                Message   = "Manually escalated",
+                Timestamp = DateTime.Now
+            }
+        };
+
+        try
+        {
+            string jsonPath = escMgr.CreateEscalation(checks.ToList());
+
+            var ticket = new Ticket
+            {
+                TicketId      = $"TKT-{DateTime.Now:yyyyMMdd-HHmmss}",
+                Department    = DepartmentComboBox.SelectedItem is ComboBoxItem cbi
+                                    ? (cbi.Content.ToString() ?? "—") : "—",
+                Priority      = PriorityMedium.IsChecked == true ? "Medium"
+                           : PriorityLow.IsChecked      == true ? "Low"
+                           : PriorityHigh.IsChecked     == true ? "High"
+                           : PriorityCritical.IsChecked == true ? "Critical"
+                           : "Medium",
+                Category      = CategoryComboBox.SelectedItem is ComboBoxItem cbi2
+                                    ? (cbi2.Content.ToString() ?? "—") : "—",
+                Description   = DescriptionTextBox.Text,
+                StepsTaken    = StepsTextBox.Text,
+                ContactName   = ContactNameTextBox.Text,
+                ContactPhone  = ContactPhoneTextBox.Text,
+                MachineName   = Environment.MachineName,
+                OSVersion     = Environment.OSVersion.ToString(),
+                DetectedIssues = "Manually escalated — no automated checks run.",
+                CreatedAt     = DateTime.UtcNow
+            };
+            await _ticketRepo.InsertTicketAsync(ticket);
+
+            ToastManager.ShowToast("Ticket Created",
+                $"Escalation #{ticket.TicketId} generated and saved.", 6000, ToastIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to generate escalation ticket", ex);
+            ToastManager.ShowToast("Error", ex.Message, 6000, ToastIcon.Error);
+        }
+    }
+
+    private void CallAssistant_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName   = "tel:+271101234567",
+                UseShellExecute = true
+            });
+            ToastManager.ShowToast("Calling Support", "Opening dialer…", 4000, ToastIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            ToastManager.ShowToast("Error", $"Cannot start dialer: {ex.Message}", 4000, ToastIcon.Error);
+        }
+    }
+
+    private void LiveChat_Click(object sender, RoutedEventArgs e)
+    {
+        const string chatUrl = "https://nattreasury.gov.za/support/live-chat";
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName        = chatUrl,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            ToastManager.ShowToast("Error", $"Cannot open browser: {ex.Message}", 4000, ToastIcon.Error);
+        }
+    }
+
+    private void PrintIssuesReport_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var headerLines = new List<string>
+            {
+                "╔══════════════════════════════════════════════════╗",
+                "║     TreasuryFixTool — Escalation Report           ║",
+                "╠══════════════════════════════════════════════════╣",
+            };
+
+            var issueLines = new List<string>();
+            foreach (var child in IssuesList.Children)
+            {
+                if (child is Border b && b.Child is StackPanel sp)
+                {
+                    foreach (var inner in sp.Children)
+                        if (inner is TextBlock tb)
+                            issueLines.Add($"  • {tb.Text.Trim()}");
+                }
+            }
+
+            if (!issueLines.Any())
+                issueLines.Add("  No active issues detected.");
+
+            var footerLines = new List<string>
+            {
+                "╠══════════════════════════════════════════════════╣",
+                $"  Machine  : {Environment.MachineName}",
+                $"  User     : {Environment.UserName}",
+                $"  OS       : {Environment.OSVersion}",
+                $"  Printed  : {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+                "╚══════════════════════════════════════════════════╝",
+            };
+
+            var allLines = headerLines.Concat(issueLines).Concat(footerLines).ToList();
+            string report = string.Join(Environment.NewLine, allLines);
+
+            var printDialog = new PrintDialog();
+            if (printDialog.ShowDialog() != true) return;
+
+            var doc = new FlowDocument
+            {
+                PagePadding    = new Thickness(60),
+                ColumnWidth    = double.PositiveInfinity,
+                FontFamily     = new FontFamily("Consolas"),
+                FontSize       = 12,
+                Background     = Brushes.White,
+            };
+
+            doc.Blocks.Add(new Paragraph(new Run(report)));
+            printDialog.PrintDocument(((IDocumentPaginatorSource)doc).DocumentPaginator,
+                "TreasuryFixTool — Issues Report");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to print issues report", ex);
+            ToastManager.ShowToast("Print Error",
+                ex is System.ComponentModel.Win32Exception
+                    ? "No printer configured. Set up a printer first."
+                    : ex.Message, 5000, ToastIcon.Error);
+        }
+    }
+
+    private async void EmailSupport_Click(object sender, RoutedEventArgs e)
+    {
+        if (DepartmentComboBox.SelectedItem is not ComboBoxItem)
+        {
+            ToastManager.ShowToast("Validation Error",
+                "Please select your department first.", 4000, ToastIcon.Warning);
+            return;
+        }
+
+        var issueLines = new List<string>();
+        foreach (var child in IssuesList.Children)
+        {
+            if (child is Border b && b.Child is StackPanel sp)
+            {
+                foreach (var inner in sp.Children)
+                    if (inner is TextBlock tb)
+                        issueLines.Add(tb.Text.Trim());
+            }
+        }
+
+        var escMgr = new EscalationManager(DataPaths.EscalationsDirectory, _logger);
+        var checks = new ObservableCollection<CheckResult>
+        {
+            new CheckResult
+            {
+                CheckName = "Issues Escalated",
+                Status    = CheckStatus.Warning,
+                Message   = string.Join(Environment.NewLine, issueLines.DefaultIfEmpty("No issues listed.")),
+                Timestamp = DateTime.Now
+            }
+        };
+
+        try
+        {
+            string jsonPath = escMgr.CreateEscalation(checks.ToList());
+            var notifier   = new EmailNotifier();
+
+            string dept = DepartmentComboBox.SelectedItem is ComboBoxItem cbi
+                                ? (cbi.Content.ToString() ?? "Support") : "Support";
+
+            bool sent = await notifier.SendEscalationNotificationAsync(
+                            dept, Environment.MachineName, jsonPath);
+
+            if (sent)
+                ToastManager.ShowToast("Email Sent",
+                    $"Escalation report emailed for {dept}.", 6000, ToastIcon.Info);
+            else
+                ToastManager.ShowToast("Email Failed",
+                    "SMTP relay rejected the message. Try again or contact ICTSU directly.", 6000, ToastIcon.Error);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to send escalation email", ex);
+            ToastManager.ShowToast("Email Error", ex.Message, 5000, ToastIcon.Error);
+        }
+    }
+
+    private void RemoteSession_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName        = "mstsc.exe",
+                UseShellExecute = true
+            });
+            ToastManager.ShowToast("Remote Session",
+                "Connecting to Remote Desktop…", 4000, ToastIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            ToastManager.ShowToast("Error",
+                $"Cannot start Remote Desktop: {ex.Message}", 4000, ToastIcon.Error);
+        }
+    }
+
+    private void AddFiles_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Multiselect = true,
+                Title       = "Add Attachment Files",
+                Filter      = "All Files (*.*)|*.*|Images (*.png;*.jpg;*.gif;*.bmp)|*.png;*.jpg;*.gif;*.bmp|Documents (*.pdf;*.doc;*.docx;*.txt)|*.pdf;*.doc;*.docx;*.txt",
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                foreach (string file in dlg.FileNames)
+                    if (!_attachedFiles.Contains(file))
+                        _attachedFiles.Add(file);
+
+                ToastManager.ShowToast("Files Added",
+                    $"{dlg.FileNames.Length} file(s) attached to this ticket.", 4000, ToastIcon.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastManager.ShowToast("Error",
+                $"Cannot open file dialog: {ex.Message}", 4000, ToastIcon.Error);
+        }
+    }
+
+    private async void SubmitTicket_Click(object sender, RoutedEventArgs e)
+    {
+        // ── Validate ──────────────────────────────────────────────────
+        if (DepartmentComboBox.SelectedItem is null)
+        {
+            ToastManager.ShowToast("Validation Error", "Please select your department", 4000, ToastIcon.Warning);
+            return;
+        }
+        if (CategoryComboBox.SelectedItem is null)
+        {
+            ToastManager.ShowToast("Validation Error", "Please select an issue category", 4000, ToastIcon.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(DescriptionTextBox.Text))
+        {
+            ToastManager.ShowToast("Validation Error", "Please provide a detailed description", 4000, ToastIcon.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(ContactNameTextBox.Text) || string.IsNullOrWhiteSpace(ContactPhoneTextBox.Text))
+        {
+            ToastManager.ShowToast("Validation Error", "Please provide contact information", 4000, ToastIcon.Warning);
+            return;
+        }
+
+        // ── Determine priority ─────────────────────────────────────────
+        string priority = PriorityMedium.IsChecked == true ? "Medium"
+                    : PriorityLow.IsChecked      == true ? "Low"
+                    : PriorityHigh.IsChecked     == true ? "High"
+                    : PriorityCritical.IsChecked == true ? "Critical"
+                    : "Medium";
+
+        // ── Collect detected issues from the right panel ──────────────
+        var issueLines = new List<string>();
+        foreach (var child in IssuesList.Children)
+        {
+            if (child is Border b && b.Child is StackPanel sp)
+            {
+                foreach (var inner in sp.Children)
+                    if (inner is TextBlock tb) issueLines.Add(tb.Text.Trim());
+            }
+        }
+
+        string issuesText = string.Join(Environment.NewLine, issueLines);
+
+        var ticket = new Ticket
+        {
+            TicketId = $"TKT-{DateTime.Now:yyyyMMdd-HHmmss}",
+            Department = ((ComboBoxItem)DepartmentComboBox.SelectedItem).Content.ToString()!,
+            Priority = priority,
+            Category = ((ComboBoxItem)CategoryComboBox.SelectedItem).Content.ToString()!,
+            Description = DescriptionTextBox.Text,
+            StepsTaken = StepsTextBox.Text,
+            ContactName = ContactNameTextBox.Text,
+            ContactPhone = ContactPhoneTextBox.Text,
+            MachineName = Environment.MachineName,
+            OSVersion = Environment.OSVersion.ToString(),
+            DetectedIssues = issuesText,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        try
+        {
+            await _ticketRepo.InsertTicketAsync(ticket);
+            
+            ToastManager.ShowToast("Ticket Created", 
+                $"Ticket #{ticket.TicketId} saved to database.", 6000, ToastIcon.Info);
+
+            DescriptionTextBox.Clear();
+            StepsTextBox.Clear();
+            _attachedFiles.Clear();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to save ticket to PostgreSQL", ex);
+            ToastManager.ShowToast("Database Error", 
+                $"Failed to create ticket: {ex.Message}", 6000, ToastIcon.Error);
+        }
     }
 }

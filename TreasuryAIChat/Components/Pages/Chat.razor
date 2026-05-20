@@ -1,0 +1,157 @@
+@page "/chat"
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Text
+@using System.Net
+@using TreasuryAIChat.Models
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@implements IAsyncDisposable
+
+<div class="chat-page">
+    <div class="chat-header">
+        <div class="avatar">🤖</div>
+        <div>
+            <h3>Treasury AI Support</h3>
+            <small>
+                <span class="@(IsConnected ? "dot-on" : "dot-off")">●</span>
+                @(IsConnected ? "Online — AI assistant ready" : "Connecting…")
+            </small>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="msgBox" @ref="_box">
+        @if (_messages.Count == 0)
+        {
+            <div class="welcome-card">
+                <p>👋 Welcome to <strong>National Treasury ICT Support Live Chat</strong>.</p>
+                <p>I can help with:</p>
+                <ul>
+                    <li>🌐 Network / Wi-Fi / VPN</li>
+                    <li>🖨️ Printers &amp; peripherals</li>
+                    <li>📧 Email &amp; Outlook</li>
+                    <li>💻 IFMIS / G-Pay access</li>
+                    <li>🎫 Digital certificates</li>
+                </ul>
+                <p>Type your question below, or click <strong>Talk to Human Agent</strong>.</p>
+            </div>
+        }
+        @foreach (var m in _messages)
+        {
+            <div class="bubble @m.CssClass">
+                <span class="who">@m.Who</span>
+                <span class="text">@((MarkupString)(m.Text ?? ""))</span>
+                <span class="when">@m.When</span>
+            </div>
+        }
+    </div>
+
+    <div class="chat-input-row">
+        <input @bind="_text" @bind:event="oninput"
+               @onkeyup="@(e => e.Key == "Enter" ? _ = SendAsync() : Task.CompletedTask)"
+               placeholder="Describe your ICT issue…" class="chat-tb" />
+        <button class="btn-send" @onclick="SendAsync" disabled="@_busy">↑</button>
+        <button class="btn-agent" @onclick="RequestAgent" title="Escalate to human agent">
+            👤 Human Agent
+        </button>
+    </div>
+</div>
+
+@code {
+    private HubConnection?          _hub;
+    private readonly List<ChatMsg>  _messages  = new();
+    private readonly StringBuilder  _buffer    = new();
+    private string                  _text      = "";
+    private bool                    _busy;
+    private ElementReference        _box;
+    private readonly string         _conversationId = Guid.NewGuid().ToString();
+    private bool                    _isConnected => _hub?.State == HubConnectionState.Connected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hub = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/chathub"))
+            .WithAutomaticReconnect(
+                new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5) })
+            .Build();
+
+        _hub.On<string, string>("ReceiveUserMessage", (id, content) =>
+        {
+            _messages.Add(new ChatMsg { Who = "You",       Text = WebUtility.HtmlEncode(content), When = DateTime.Now.ToString("HH:mm"), CssClass = "user" });
+            _ = ScrollAsync();
+        });
+
+        _hub.On<string>("ReceiveAIResponseChunk", chunk =>
+        {
+            _buffer.Append(chunk);
+            var lastAi = _messages.LastOrDefault(m => m.Who == "AI" && !m.Finished);
+            if (lastAi is not null) lastAi.Text = WebUtility.HtmlEncode(_buffer.ToString());
+            else _messages.Add(new ChatMsg { Who = "AI", Text = WebUtility.HtmlEncode(_buffer.ToString()), When = "", CssClass = "ai", Finished = false });
+            StateHasChanged();
+            _ = ScrollAsync();
+        });
+
+        _hub.On<string>("ShowKBSuggestions", payload =>
+        {
+            _messages.Add(new ChatMsg { Who = "📚 Knowledge Base", Text = Markup.Escape(payload), When = DateTime.Now.ToString("HH:mm"), CssClass = "sys" });
+            StateHasChanged();
+        });
+
+        _hub.On<string, string>("ReceiveAgentMessage", (id, content) =>
+        {
+            _messages.Add(new ChatMsg { Who = "🌐 ICT Agent", Text = WebUtility.HtmlEncode(content), When = DateTime.Now.ToString("HH:mm"), CssClass = "agent" });
+            StateHasChanged();
+        });
+
+        _hub.On<string>("AgentJoined", msg =>
+        {
+            _messages.Add(new ChatMsg { Who = "System", Text = MsgEscape(msg), When = DateTime.Now.ToString("HH:mm"), CssClass = "sys" });
+            StateHasChanged();
+        });
+
+        _hub.Reconnecting += _ => { StateHasChanged(); return Task.CompletedTask; };
+        _hub.Closed       += _ => { StateHasChanged(); return Task.CompletedTask; };
+
+        await _hub.StartAsync();
+        StateHasChanged();
+    }
+
+    private async Task SendAsync()
+    {
+        var t = _text.Trim();
+        if (t.Length == 0 || _busy) return;
+        _text = string.Empty;
+        _busy = true;
+        _buffer.Clear();
+        try { await _hub!.SendAsync("SendUserMessage", t, _conversationId); }
+        finally { _busy = false; }
+    }
+
+    private async Task RequestAgent()
+    {
+        try { await _hub!.SendAsync("RequestAgentHandoff", _conversationId); } catch { }
+    }
+
+    private async Task ScrollAsync()
+    {
+        try { await Task.Delay(30); StateHasChanged(); } catch { }
+    }
+
+    private static string MsgEscape(string s) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            System.Net.WebUtility.HtmlEncode(s), @"\n", "<br/>");
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+            try { await _hub.DisposeAsync(); } catch { }
+    }
+
+    private class ChatMsg
+    {
+        public string Who   { get; set; } = string.Empty;
+        public string Text  { get; set; } = string.Empty;
+        public string When  { get; set; } = string.Empty;
+        public string CssClass { get; set; } = "sys";
+        public bool Finished    { get; set; } = true;
+    }
+}

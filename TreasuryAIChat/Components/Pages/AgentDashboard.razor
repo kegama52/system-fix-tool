@@ -1,0 +1,178 @@
+@page "/agent-dashboard"
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.Text
+@using TreasuryAIChat.Models
+@inject NavigationManager Nav
+@implements IAsyncDisposable
+
+<div class="agent-dashboard">
+    <div class="ad-topbar">
+        <h3>🌐 Agent Dashboard</h3>
+        <span class="@(IsConnected ? "dot-on" : "dot-off")">●</span>
+    </div>
+
+    <div class="ad-stats">
+        <div class="sc"><strong>@_handoffCount</strong><small>Active Handoffs</small></div>
+        <div class="sc"><strong>@_messagesToday</strong><small>Messages Today</small></div>
+    </div>
+
+    <h4>Queue</h4>
+    @if (_handoffs.Count == 0)
+    {
+        <p class="empty-queue">All caught up ✅</p>
+    }
+    else
+    {
+        <table class="queue-tbl">
+            <thead><tr><th>Conversation</th><th>Preview</th><th>At</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var r in _handoffs)
+            {
+                <tr>
+                    <td><code>@r.ConversationId.Substring(0, Math.Min(12, r.ConversationId.Length))…</code></td>
+                    <td>@r.LastMessage</td>
+                    <td>@r.ActiveAt</td>
+                    <td><button class="join-btn" @onclick="() => Join(r.ConversationId)">Join</button></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    <h4>Session</h4>
+    @if (_sessionId is null)
+    {
+        <p class="no-session">Join from the queue above.</p>
+    }
+    else
+    {
+        <div class="session-bar">
+            <strong>Chatting:</strong> <code>@_sessionId.Substring(0, Math.Min(20, _sessionId.Length))…</code>
+            <button class="leave-btn" @onclick="LeaveSession">Leave</button>
+        </div>
+    }
+
+    <div class="agent-panel">
+        <div class="msgs" id="agentMsgs">
+            @foreach (var m in _transcript)
+            {
+                <div class="msg-row @m.Kind">
+                    <span>@m.From</span>
+                    <span class="body">@((MarkupString)m.Body)</span>
+                    <small>@m.Stamp</small>
+                </div>
+            }
+        </div>
+        <div class="input-bar">
+            <input @bind="_input" @bind:event="oninput"
+                   @onkeyup="@(e => e.Key == "Enter" ? _ = SendMessageAsync() : Task.CompletedTask)"
+                   placeholder="Reply to the user…" class="agt-tb" />
+            <button class="btn-send" @onclick="SendMessageAsync" disabled="@_sending">Send</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private HubConnection?                      _hub;
+    private readonly List<AgentHandoffRequest> _handoffs = new();
+    private readonly List<AgentMsg>            _transcript = new();
+    private string?                            _sessionId;
+    private string                             _input    = "";
+    private bool                               _sending;
+    private int                                _handoffCount;
+    private int                                _messagesToday;
+
+    private bool IsConnected => _hub?.State == HubConnectionState.Connected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hub = new HubConnectionBuilder()
+            .WithUrl(Nav.ToAbsoluteUri("/chathub"))
+            .WithAutomaticReconnect(
+                new[] { TimeSpan.Zero, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(10) })
+            .Build();
+
+        _hub.On<List<AgentHandoffRequest>>("AgentHandoffRequested", list =>
+        {
+            _handoffs.Clear();
+            _handoffs.AddRange(list);
+            _handoffCount = list.Count;
+            StateHasChanged();
+        });
+
+        _hub.On<string>("AgentJoined", msg =>
+        {
+            _transcript.Add(new AgentMsg("System", msg));
+            StateHasChanged();
+        });
+
+        _hub.On<string, string>("ReceiveAgentMessage", (id, content) =>
+        {
+            Interlocked.Increment(ref _messagesToday);
+            _transcript.Add(new AgentMsg("User", WebUtility.HtmlEncode(content)));
+            StateHasChanged();
+        });
+
+        _hub.Reconnecting += _ => { StateHasChanged(); return Task.CompletedTask; };
+        _hub.Closed       += _ => { StateHasChanged(); return Task.CompletedTask; };
+
+        await _hub.StartAsync();
+
+        // Poll queue every 5 s
+        _ = Task.Run(async () =>
+        {
+            var tcs = new();
+            using var t = new System.Threading.Timer(_ => tcs.TrySetResult(), null, 5000, 5000);
+            while (!tcs.Task.IsCompleted)
+            {
+                await tcs.Task;
+                try { await _hub!.SendAsync("GetActiveHandoffs"); } catch { break; }
+                tcs = new TaskCompletionSource();
+            }
+        });
+    }
+
+    private async Task Join(string convId)
+    {
+        _sessionId = convId;
+        _transcript.Clear();
+        _transcript.Add(new AgentMsg("System", $"Joined {convId[..8]}…"));
+        try { await _hub!.SendAsync("JoinConversation", convId); } catch { }
+        StateHasChanged();
+    }
+
+    private async Task LeaveSession()
+    {
+        if (_sessionId is null) return;
+        try { await _hub!.Groups.RemoveFromGroupAsync(_sessionId, Context.Aborted); } catch { }
+        _sessionId = null;
+        StateHasChanged();
+    }
+
+    private async Task SendMessageAsync()
+    {
+        var t = _input.Trim();
+        if (t.Length == 0 || _sending || _sessionId is null) return;
+        _input   = string.Empty;
+        _sending = true;
+        try
+        {
+            _transcript.Add(new AgentMsg("You", t));
+            await _hub!.SendAsync("SendAgentMessage", _sessionId, t);
+        }
+        finally { _sending = false; }
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hub is not null)
+            try { await _hub.DisposeAsync(); } catch { }
+    }
+
+    private record AgentMsg(string From, string Body)
+    {
+        public string Kind => From switch { "You" => "my-msg", "User" => "peer-msg", _ => "sys-msg" };
+        public string Stamp => DateTime.Now.ToString("HH:mm");
+    }
+}

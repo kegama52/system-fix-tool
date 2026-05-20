@@ -1,15 +1,30 @@
 using System;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.ServiceProcess;
 using System.Management;
+using System.Threading;
 using Microsoft.Win32;
 using TreasuryFixTool.Diagnostics;
 
 namespace TreasuryFixTool.Diagnostics
 {
+    /// <summary>
+    /// Represents system health metrics.
+    /// </summary>
+    public class SystemHealthMetrics
+    {
+        public double CpuUsage { get; set; }
+        public double MemoryUsage { get; set; }
+        public double DiskUsage { get; set; }
+        public int ActiveServices { get; set; }
+        public int FailedServices { get; set; }
+        public DateTime LastScan { get; set; }
+    }
+
     /// <summary>
     /// Orchestrates running diagnostic checks and aggregating results.
     /// </summary>
@@ -35,6 +50,79 @@ namespace TreasuryFixTool.Diagnostics
                 new AccessDeniedCheck(),
                 new LoginFailedCheck()
             };
+        }
+
+        /// <summary>
+        /// Gets current system health metrics.
+        /// </summary>
+        public SystemHealthMetrics GetCurrentMetrics()
+        {
+            var metrics = new SystemHealthMetrics { LastScan = DateTime.Now };
+
+            try
+            {
+                // CPU Usage
+                using var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                cpuCounter.NextValue();
+                Thread.Sleep(500);
+                metrics.CpuUsage = cpuCounter.NextValue();
+            }
+            catch
+            {
+                metrics.CpuUsage = 0;
+            }
+
+            try
+            {
+                // Memory Usage - using available MBytes as percentage of total physical memory
+                using var memCounter = new PerformanceCounter("Memory", "Available MBytes");
+                double availableMb = memCounter.NextValue();
+                double usedMb = 0;
+                if (Environment.WorkingSet > 0)
+                {
+                    usedMb = (double)Environment.WorkingSet / (1024 * 1024);
+                }
+                metrics.MemoryUsage = usedMb;
+            }
+            catch
+            {
+                metrics.MemoryUsage = 0;
+            }
+
+            try
+            {
+                // Disk Usage for C drive
+                var drive = new DriveInfo("C");
+                if (drive.IsReady)
+                {
+                    double total = drive.TotalSize;
+                    double free = drive.AvailableFreeSpace;
+                    metrics.DiskUsage = ((total - free) / total) * 100;
+                }
+                else
+                {
+                    metrics.DiskUsage = 0;
+                }
+            }
+            catch
+            {
+                metrics.DiskUsage = 0;
+            }
+
+            try
+            {
+                // Service counts
+                var services = ServiceController.GetServices();
+                metrics.ActiveServices = services.Count(s => s.Status == ServiceControllerStatus.Running);
+                metrics.FailedServices = services.Count(s => s.Status == ServiceControllerStatus.Stopped);
+            }
+            catch
+            {
+                metrics.ActiveServices = 0;
+                metrics.FailedServices = 0;
+            }
+
+            return metrics;
         }
 
         /// <summary>

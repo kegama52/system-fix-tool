@@ -1,0 +1,302 @@
+<UserControl x:Class="TreasuryFixTool.Views.UpdateView"
+              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:local="clr-namespace:TreasuryFixTool.Views"
+              Background="#F0F4F8">
+    <DockPanel Margin="12">
+
+        <!-- ══ Header ══════════════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Top"
+                Background="#1F497D"
+                CornerRadius="8"
+                Padding="16,12"
+                Margin="0,0,0,12">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🔄" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Update Centre" FontSize="18" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Manage online releases, USB offline packages, and automated scan intervals" FontSize="12" Foreground="#BFC9D9" Margin="4,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ══ Content grid — two panels side-by-side ══════════════════════════ -->
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="260"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*" MinWidth="260"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ──── LEFT: Online updates ─────────────────────────────────────── -->
+            <Border Grid.Column="0"
+                    Background="White"
+                    CornerRadius="8"
+                    Padding="16"
+                    BorderBrush="#BFC8D8"
+                    BorderThickness="1">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="☁️" FontSize="15" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="Online Updates" FontSize="15" FontWeight="Bold" Foreground="#1F497D" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Check GitHub releases for the latest stable build of TreasuryFixTool." FontSize="11" Foreground="#666" Margin="0,0,14,6"/>
+
+                    <!-- Current version card -->
+                    <Border Background="#EEF4FB" CornerRadius="5" Padding="12,8" Margin="0,0,12,0"
+                            BorderBrush="#2E75B6" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Installed Version" FontSize="10" Foreground="#555" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="CurrentVersionText" Text="1.0.0" FontSize="20" FontWeight="Bold" Foreground="#1F497D" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- What's new card -->
+                    <Border x:Name="UpdateInfoCard"
+                            Background="#FFFDE7"
+                            CornerRadius="5"
+                            Padding="12,8"
+                            Margin="0,0,14,0"
+                            BorderBrush="#F9A825"
+                            BorderThickness="1"
+                            Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock x:Name="UpdateNewVersionLabel" Text="New version available:" FontSize="10" Foreground="#555" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="UpdateNewVersion"   Text="" FontSize="18" FontWeight="Bold" Foreground="#E65100" Margin="0,2,0,6"/>
+                            <TextBlock Text="Changelog"  FontSize="10" Foreground="#555" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                            <TextBlock x:Name="UpdateChangelog" Text="" FontSize="11" Foreground="#444" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                            <TextBlock x:Name="UpdatePublished" Text="" FontSize="10" Foreground="#888" Margin="0,0,0,4"/>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="UpdateUrgency"   Text="" FontSize="10" Foreground="#555" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Action buttons -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button x:Name="CheckUpdateBtn"
+                                Content="🔄  Check for Update"
+                                Padding="14,7"
+                                Click="CheckUpdate_Click"
+                                Background="#2E75B6"
+                                Foreground="White"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                FontWeight="SemiBold"/>
+                        <TextBlock x:Name="UpdateStatusText" FontSize="11" Foreground="#777" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+
+                    <!-- Release notes hyperlink -->
+                    <TextBlock x:Name="ReleaseNotesLink" Text="" FontSize="11" Foreground="#2E75B6" Cursor="Hand"
+                               MouseLeftButtonUp="ReleaseNotesLink_MouseLeftButtonUp" Visibility="Collapsed"/>
+                </StackPanel>
+            </Border>
+
+            <!-- GridSplitter -->
+            <GridSplitter Grid.Column="1" Width="8" Background="#ECEFF4" HorizontalAlignment="Stretch"
+                          ResizeDirection="Columns"/>
+
+            <!-- ──── RIGHT: USB offline updates ───────────────────────────────── -->
+            <Border Grid.Column="2"
+                    Background="White"
+                    CornerRadius="8"
+                    Padding="16"
+                    BorderBrush="#BFC8D8"
+                    BorderThickness="1">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="💾" FontSize="15" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Text="USB Offline Updates" FontSize="15" FontWeight="Bold" Foreground="#1F497D" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Insert a signed USB drive (treasury_update.sig + Recipes/*.json) to import recipes offline." FontSize="11" Foreground="#666" Margin="0,0,14,6"/>
+
+                    <!-- USB drive detection list -->
+                    <Border Background="#F8FAFC" CornerRadius="5" Padding="10,6" Margin="0,0,10,0"
+                            BorderBrush="#CFD8E3" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Detected removable drives" FontSize="10" Foreground="#555" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                            <ItemsControl x:Name="UsbDrivesList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="White"
+                                                BorderBrush="#DDDDDD"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="8,5"
+                                                Margin="0,0,0,4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="💽" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding}" FontSize="11" Foreground="#333" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock x:Name="NoUsbDrivesText" Text="No removable drives detected." FontSize="10" Foreground="#AAA" Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Scan USB button -->
+                    <Button x:Name="ScanUsbBtn"
+                            Content="🔍  Scan USB for Updates"
+                            Padding="14,7"
+                            Click="ScanUsb_Click"
+                            Background="#7B1FA2"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Cursor="Hand"
+                            FontWeight="SemiBold"
+                            Margin="0,0,0,10"/>
+
+                    <!-- Last scan info -->
+                    <Border x:Name="UsbLastScanBorder"
+                            Background="#F5FFF6"
+                            CornerRadius="5"
+                            Padding="10,7"
+                            BorderBrush="#C6EFCE"
+                            BorderThickness="1"
+                            Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="Last USB scan result:" FontSize="10" Foreground="#555" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="UsbLastScanResult" Text="" FontSize="12" Foreground="#1B5E20" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="UsbLastScanTime"   Text="" FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Auto-scan toggle -->
+                    <Border Background="#F0F4F8" CornerRadius="5" Padding="10,8" Margin="0,10,0,0"
+                            BorderBrush="#D6E4F0" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="Auto USB Scan" FontSize="11" FontWeight="SemiBold" Foreground="#333" Margin="0,0,4,0"/>
+                            <TextBlock Text="Rescan every N minutes while the app is open." FontSize="10" Foreground="#777" Margin="0,0,6,0"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ToggleButton x:Name="AutoUsbScanToggle"
+                                              Grid.Column="0"
+                                              Width="60" Height="24"
+                                              Background="#CCC"
+                                              Checked="AutoUsbScanToggle_Checked"
+                                              Unchecked="AutoUsbScanToggle_Unchecked">
+                                    <TextBlock Text="OFF" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </ToggleButton>
+                                <TextBlock Grid.Column="1" Text="" FontSize="10" Foreground="#888" Margin="10,0,0,0"/>
+                                <ComboBox x:Name="UsbScanIntervalCombo"
+                                          Grid.Column="2"
+                                          Width="90"
+                                          Height="24"
+                                          SelectionChanged="UsbScanIntervalCombo_SelectionChanged"
+                                          Padding="4,2">
+                                    <ComboBoxItem Content="1 min"   IsSelected="True"/>
+                                    <ComboBoxItem Content="5 min"/>
+                                    <ComboBoxItem Content="10 min"/>
+                                    <ComboBoxItem Content="15 min"/>
+                                    <ComboBoxItem Content="30 min"/>
+                                </ComboBox>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ══ Update log ════════════════════════════════════════════════════════ -->
+        <Border Background="White" CornerRadius="8" Padding="10" BorderBrush="#CFD8E3" BorderThickness="1">
+            <DockPanel>
+                <Border DockPanel.Dock="Top"
+                        Background="#1F497D"
+                        CornerRadius="4"
+                        Padding="8,5"
+                        Cursor="Hand"
+                        MouseLeftButtonUp="LogHeader_Click">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="LogToggleIcon" Text="▶" FontSize="10" Foreground="White" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="📋  Update Log" FontSize="12" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" x:Name="ClearLogBtn" Content="🗑 Clear" Padding="8,3"
+                                Click="ClearLog_Click" Background="#C0392B" Foreground="White"
+                                BorderThickness="0" Cursor="Hand" FontSize="10"/>
+                    </Grid>
+                </Border>
+
+                <ScrollViewer x:Name="LogScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              MaxHeight="240"
+                              DockPanel.Dock="Top">
+                    <ItemsControl x:Name="LogEntriesHost">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="6,4" Margin="0,0,0,1"
+                                        BorderBrush="{Binding EntryBorder}"
+                                        BorderThickness="0,0,0,1"
+                                        Background="{Binding EntryBg}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="130"/>
+                                            <ColumnDefinition Width="58"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
+                                                   FontSize="10" Foreground="#888" FontFamily="Consolas"/>
+                                        <Border Grid.Column="1" CornerRadius="3" Padding="2,0 5,0"
+                                                Background="{Binding StatusBadgeBg}"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding StatusLetter}"
+                                                       FontSize="9" FontWeight="Bold" Foreground="White"/>
+                                        </Border>
+                                        <TextBlock Grid.Column="2"
+                                                   Text="{Binding Description}"
+                                                   FontSize="11" Foreground="#333"
+                                                   TextWrapping="Wrap"
+                                                   Margin="6,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <TextBlock x:Name="LogFooter" Text="No update attempts yet." FontSize="10"
+                           Foreground="#AAA" Margin="6,4,0,0"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ══ Status bar ═════════════════════════════════════════════════════════ -->
+        <Border DockPanel.Dock="Bottom" Background="#DDE3EA" Padding="6,2" BorderThickness="0,1,0,0" BorderBrush="#CBD2DA">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="AutoScanStatus"
+                           Text="Auto USB scan: Off"
+                           FontSize="10" Foreground="#64748B"/>
+                <TextBlock x:Name="LastScanTimer"
+                           Grid.Column="1"
+                           Text=""
+                           FontSize="10" Foreground="#888"
+                           FontFamily="Consolas"/>
+                <TextBlock Grid.Column="2"
+                           Text="TreasuryFixTool  |  Update Centre"
+                           FontSize="10" Foreground="#475569"/>
+            </Grid>
+        </Border>
+
+    </DockPanel>
+</UserControl>

@@ -1,43 +1,95 @@
 <UserControl x:Class="TreasuryFixTool.Views.DiagnosticsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:TreasuryFixTool.Views"
+             AutomationProperties.Name="System Event Logs"
+             AutomationProperties.HelpText="Displays system diagnostic event log entries with severity colour-coding and filtering options"
              Background="#F0F4F8">
+    <UserControl.Resources>
+        <local:EventLevelToColorConverter x:Key="LevelToColorConverter"/>
+        <local:EventLevelToBrushConverter   x:Key="LevelToBrushConverter"/>
+    </UserControl.Resources>
     <DockPanel Margin="16">
-        <Border DockPanel.Dock="Top" Background="#1F497D" CornerRadius="6" Padding="14,10" Margin="0,0,0,12">
+        <Border DockPanel.Dock="Top" Background="#1F497D" CornerRadius="6" Padding="14,10" Margin="0,0,0,12"
+                AutomationProperties.Name="Diagnostics header">
             <StackPanel>
-                <TextBlock Text="System Diagnostics" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                <TextBlock Text="System Diagnostics" FontSize="16" FontWeight="Bold" Foreground="White"
+                           AutomationProperties.Name="Diagnostics title"/>
                 <TextBlock Text="Event Log Records and System Health Summary" FontSize="12" Foreground="#FADBD8" Margin="0,4,0,0"/>
             </StackPanel>
         </Border>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto" DockPanel.Dock="Top">
-            <ItemsControl x:Name="EventRecords">
-                <ItemsControl.ItemTemplate>
+        <!-- ── Filter toolbar ── -->
+        <Border DockPanel.Dock="Top" Background="#E2E8F0" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Filter:" FontSize="11" Foreground="#374151" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <ComboBox x:Name="LevelFilterCombo" Grid.Column="1" Width="110" Height="24" FontSize="11"
+                          SelectionChanged="LevelFilterCombo_SelectionChanged" SelectedIndex="0"
+                          AutomationProperties.Name="Log level filter">
+                    <ComboBoxItem Content="All Levels"/>
+                    <ComboBoxItem Content="Error"/>
+                    <ComboBoxItem Content="Warning"/>
+                    <ComboBoxItem Content="Information"/>
+                </ComboBox>
+                <TextBlock Text="Search:" Grid.Column="2" FontSize="11" Foreground="#374151" VerticalAlignment="Center" Margin="10,0,6,0"/>
+                <TextBox x:Name="SearchBox" Grid.Column="3" Height="24" Padding="4,0" FontSize="11"
+                         ToolTip="Filter by message text…"
+                         TextChanged="SearchBox_TextChanged"
+                         AutomationProperties.Name="Search event logs"/>
+                <CheckBox x:Name="AutoRefreshCheck" Grid.Column="4" Content="Auto-refresh (30 s)" FontSize="11"
+                          VerticalAlignment="Center" Margin="8,0,0,0"
+                          AutomationProperties.Name="Auto-refresh toggle"
+                          Unchecked="AutoRefreshCheck_Unchecked"
+                          Checked="AutoRefreshCheck_Checked"/>
+                <Button x:Name="RefreshBtn" Grid.Column="5" Content="Refresh" Padding="12,4" Click="Refresh_Click"
+                        Background="#2E75B6" Foreground="White" BorderThickness="0" Cursor="Hand"
+                        FontWeight="SemiBold" Margin="10,0,0,0"/>
+            </Grid>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" DockPanel.Dock="Top"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      ScrollViewer.CanContentScroll="True">
+            <ListView ItemsSource="{Binding DiagnosticLogs}"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      ScrollViewer.CanContentScroll="True"
+                      AutomationProperties.Name="Event log entries list">
+                <ListView.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,8"
-                                BorderBrush="#D1D9E6" BorderThickness="1">
+                        <Border CornerRadius="8" Margin="4" Padding="12"
+                                Background="{Binding Level, Converter={StaticResource LevelToColorConverter}}">
                             <StackPanel>
-                                <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
-                                           FontSize="11" Foreground="#64748B"/>
-                                <TextBlock Text="{Binding Source}" FontSize="12" FontWeight="SemiBold"
-                                           Foreground="#1E293B" Margin="0,4,0,0"/>
-                                <TextBlock Text="{Binding Message}" FontSize="12" Foreground="#475569"
-                                           TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Timestamp, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}"
+                                               FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Level}" Margin="10,0,0,0"
+                                               Foreground="{Binding Level, Converter={StaticResource LevelToBrushConverter}}"
+                                               FontSize="11"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Source}" Foreground="Gray" FontSize="11"/>
+                                <TextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,4,0,0"/>
                             </StackPanel>
                         </Border>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                </ListView.ItemTemplate>
+            </ListView>
         </ScrollViewer>
 
         <Border DockPanel.Dock="Bottom" Background="#E2E8F0" CornerRadius="6" Padding="12" Margin="0,12,0,0">
             <StackPanel Orientation="Horizontal">
-                <Button x:Name="RefreshBtn" Content="Refresh" Padding="12,4" Click="Refresh_Click"
-                        Background="#2E75B6" Foreground="White" BorderThickness="0" Cursor="Hand"
-                        FontWeight="SemiBold" Margin="0,0,10,0"/>
                 <Button x:Name="ExportBtn" Content="Export Logs" Padding="12,4" Click="Export_Click"
                         Background="#379237" Foreground="White" BorderThickness="0" Cursor="Hand"
                         FontWeight="SemiBold"/>
+                <TextBlock x:Name="EntryCountLabel" Text="0 entries" FontSize="10" Foreground="#64748B"
+                           VerticalAlignment="Center" Margin="10,0,0,0"/>
             </StackPanel>
         </Border>
     </DockPanel>

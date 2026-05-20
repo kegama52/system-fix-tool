@@ -1,0 +1,282 @@
+<UserControl x:Class="TreasuryFixTool.Views.TroubleshootingGuideView"
+              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              AutomationProperties.Name="Troubleshooting &amp; IT Issues Reference"
+              AutomationProperties.HelpText="A comprehensive guide for IT staff covering common office computer issues, error types, and troubleshooting guidance."
+              Background="#F0F4F8">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+        <StackPanel Margin="10">
+
+        <!-- Header -->
+        <Border Background="#1F497D" CornerRadius="8" Padding="18,14" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="IT Issues &amp; Troubleshooting Reference" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                <TextBlock Text="Common office computer issues, error types, and troubleshooting guidance for IT support staff" FontSize="12" Foreground="#D0D8E8" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ===== CATEGORY 1: OS & Software ===== -->
+        <Border Background="White" CornerRadius="8" Padding="18,14" Margin="0,0,0,14"
+                BorderBrush="#BFC8D8" BorderThickness="1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="🖥️ " FontSize="15"/>
+                    <TextBlock Text="Operating System &amp; Software Glitches" FontSize="15" FontWeight="Bold" Foreground="#1F497D"/>
+                </StackPanel>
+                <TextBlock Text="Daily workflow disruptions not necessarily tied to hardware failure." Foreground="#555" FontSize="12" Margin="0,0,0,12"/>
+
+                <Border Background="#F8FAFF" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#D6E4F0" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🔵 Blue Screen of Death (BSOD) / Kernel Panic" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Entire system crashes with a stop error code. Usually triggered by driver conflicts or failing RAM." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Note the stop code, uninstall the flagged driver, or run sfc /scannow." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F8FAFF" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#D6E4F0" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="❄️ Frozen Applications / Not Responding" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="A single program hogs CPU/memory; user must kill the process via Task Manager or Terminal." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Open Task Manager → End Task. If caused by resource pressure, close background tabs or reboot." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F8FAFF" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#D6E4F0" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🐌 Slow Performance &amp; High Resource Utilization" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Machine feels sluggish; can be caused by too many startup apps, background updates, or maxed-out RAM/CPU." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Open Task Manager → Startup tab → disable non-essential apps. Run Dism /Online /Cleanup-Image /RestoreHealth." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F8FAFF" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#D6E4F0" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="📦 Corrupted Registry or System Files" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Missing .dll files or configuration corruption preventing apps or the OS from booting properly." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Run sfc /scannow followed by Dism /Online /Cleanup-Image /RestoreHealth. Reboot if issues persist." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F8FAFF" CornerRadius="4" Padding="12"
+                        BorderBrush="#D6E4F0" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🔗 Software Compatibility Issues" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Legacy enterprise software breaking after a mandatory OS update." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Run the app in compatibility mode (right-click → Properties → Compatibility) or contact the software vendor." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- ===== CATEGORY 2: Hardware Failures ===== -->
+        <Border Background="White" CornerRadius="8" Padding="18,14" Margin="0,0,0,14"
+                BorderBrush="#BFC8D8" BorderThickness="1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="⚙️ " FontSize="15"/>
+                    <TextBlock Text="Hardware Failures &amp; Physical Issues" FontSize="15" FontWeight="Bold" Foreground="#1F497D"/>
+                </StackPanel>
+                <TextBlock Text="Physical components wear out, overheat, or break down over time." Foreground="#555" FontSize="12" Margin="0,0,0,12"/>
+
+                <Border Background="#FDF3F2" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🚫 Boot Failures — No Bootable Device Found" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="BIOS/UEFI cannot detect the storage drive (HDD/SSD), or the boot sector is corrupted." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Check BIOS boot order, reseat the SATA/NVMe cable. If the drive is undetected, replace the cable or drive." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FDF3F2" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🌡️ Overheating &amp; Thermal Throttling" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Clogged cooling fans or dried thermal paste cause the CPU/GPU to overheat, triggering sudden shutdowns." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Clean the vents, reapply thermal paste, ensure the fan runs at boot. If the CPU still overheats, consider a hardware replacement." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FDF3F2" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🧠 RAM Failure — POST Beep Codes" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Failing memory causes random crashes, data corruption, or prevents the machine from completing POWER-ON SELF-TEST (POST)." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Identify the beep code from the BIOS vendor, reboot with one stick of RAM at a time, run memtest86+." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FDF3F2" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="⌨️ Peripheral Malfunctions — Keyboard / Mouse / USB" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Unresponsive peripherals due to controller failure, physical wear, or loose connections." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Test on another port / machine. Check Device Manager for driver errors. Replace the peripheral if the fault persists." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FDF3F2" CornerRadius="4" Padding="12"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🖥️ Display Issues — Flickering / Dead Pixels / Blank" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Often a loose HDMI/DisplayPort cable or a failing GPU / integrated graphics unit." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Reseat the display cable, try a different port, update graphics drivers, or test with an external monitor." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- ===== CATEGORY 3: Network ===== -->
+        <Border Background="White" CornerRadius="8" Padding="18,14" Margin="0,0,0,14"
+                BorderBrush="#BFC8D8" BorderThickness="1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="🌐 " FontSize="15"/>
+                    <TextBlock Text="Network &amp; Connectivity Bottlenecks" FontSize="15" FontWeight="Bold" Foreground="#1F497D"/>
+                </StackPanel>
+                <TextBlock Text="A workstation is only as useful as its network link." Foreground="#555" FontSize="12" Margin="0,0,0,12"/>
+
+                <Border Background="#F5FFF6" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#C6EFCE" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="📡 IP Address Conflicts" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Two devices share the same IP address; one or both lose connectivity." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: ipconfig /release &amp;&amp; ipconfig /renew. If it recurs, check for rogue DHCP servers on the VLAN." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F5FFF6" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#C6EFCE" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🔒 No Internet, Secured / Limited Connectivity" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Machine connects to the local router but cannot reach the gateway or resolve DNS." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Restart the network adapter, flush the DNS cache (ipconfig /flushdns), reset TCP/IP (netsh winsock reset)." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F5FFF6" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#C6EFCE" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🌍 DNS Resolution Failure" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Cannot translate domain names (e.g., google.com) into IP addresses." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: ipconfig /flushdns, then change the DNS server to 8.8.8.8 / 1.1.1.1 in adapter settings." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F5FFF6" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#C6EFCE" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="📶 Wi-Fi Dropping / Weak Signal" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Wireless interference or roaming aggressiveness settings cause the laptop to disconnect from the office AP." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Move closer to the AP, disable automatic roaming, or switch to wired Ethernet if available." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F5FFF6" CornerRadius="4" Padding="12"
+                        BorderBrush="#C6EFCE" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🔗 Active Directory / Domain Trust Failures" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="— The trust relationship between this workstation and the primary domain failed — locks users out of network accounts until IT rejoins the machine." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Rejoin the domain from an elevated PowerShell (Remove-Computer -Workgroup -Force; Add-Computer -DomainName YOURDOMAIN) or from System Properties." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- ===== CATEGORY 4: Peripherals ===== -->
+        <Border Background="White" CornerRadius="8" Padding="18,14" Margin="0,0,0,14"
+                BorderBrush="#BFC8D8" BorderThickness="1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="🖨️ " FontSize="15"/>
+                    <TextBlock Text="Peripheral &amp; Office Equipment Errors" FontSize="15" FontWeight="Bold" Foreground="#1F497D"/>
+                </StackPanel>
+                <TextBlock Text="Errors occurring at the edge of the workstation interface." Foreground="#555" FontSize="12" Margin="0,0,0,12"/>
+
+                <Border Background="#FFFBEE" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#FFE08A" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🖨️ Printer Offline / Spooler Errors" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="The local or network print spooler service freezes; print jobs pile up in the queue without printing." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: open Services.msc → restart 'Print Spooler', or run: net stop spooler &amp;&amp; del /q /f /s %systemroot%\System32\spool\PRINTERS\* &amp;&amp; net start spooler" FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FFFBEE" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#FFE08A" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🎤 Audio / Video Inversion in Teams / Zoom" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Microphones or webcams fail to initialise due to permissions issues or driver lock-ups." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Check Windows Privacy settings → Microphone / Camera → ensure the app is allowed. Reinstall or roll back the device driver." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FFFBEE" CornerRadius="4" Padding="12"
+                        BorderBrush="#FFE08A" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🔌 Docking Station Disconnects" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Laptops fail to recognise dual monitors or Ethernet pass-through when connected via USB-C or Thunderbolt dock." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Disconnect and reconnect the dock, update the dock firmware via the OEM portal, restart the DisplayLink service." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- ===== CATEGORY 5: Security &amp; Malware ===== -->
+        <Border Background="White" CornerRadius="8" Padding="18,14" Margin="0,0,0,14"
+                BorderBrush="#BFC8D8" BorderThickness="1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="🔒 " FontSize="15"/>
+                    <TextBlock Text="Security &amp; Malware Indicators" FontSize="15" FontWeight="Bold" Foreground="#1F497D"/>
+                </StackPanel>
+                <TextBlock Text="Flags that the system's security integrity has been compromised." Foreground="#555" FontSize="12" Margin="0,0,0,12"/>
+
+                <Border Background="#FFF0F0" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🌐 Browser Hijacking &amp; Adware" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Unwanted pop-ups, random redirects, or an unauthorised search engine silently set as the default browser." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Reset browser settings (chrome://settings/reset), remove suspicious extensions, run Malwarebytes full scan." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FFF0F0" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="🛡️ Antivirus Alerts / Quarantine Notifications" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Flagged malicious files, Trojan alerts, or blocked unauthorised execution attempts." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Allow AV to quarantine the file. Restart from a clean environment if the threat is persistent. Isolate the machine from the network." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FFF0F0" CornerRadius="4" Padding="12" Margin="0,0,0,8"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="💀 Phishing / Ransomware Lockouts" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Files change extensions and become inaccessible; a ransom note is displayed on screen." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Disconnect from the network immediately. Do NOT pay the ransom. Report to InfoSec, preserve the ransom note, and restore from known-good backups." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#FFF0F0" CornerRadius="4" Padding="12"
+                        BorderBrush="#F5C6CB" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="⛔ Repeated Access-Denied / Account Lockouts" FontSize="12" FontWeight="Bold"/>
+                        <TextBlock Text="Brute-force attempts or expired credential loops stored in Windows Credential Manager trigger repeated lockouts." FontSize="11" Foreground="#555" Margin="0,2,0,0"/>
+                        <TextBlock Text="Fix: Purge expired credentials from Credential Manager (control keymgr.dll). Reset the user's AD password and enable MFA where possible." FontSize="11" Foreground="#1F497D" Margin="0,4,0,0" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- Footer -->
+        <TextBlock Text="TreasuryFixTool — National Treasury IT Support Unit | Troubleshooting Guide v1.0"
+                   FontSize="10" Foreground="#8899AA" HorizontalAlignment="Right" Margin="0,0,0,8"/>
+
+    </StackPanel>
+        </ScrollViewer>
+</UserControl>

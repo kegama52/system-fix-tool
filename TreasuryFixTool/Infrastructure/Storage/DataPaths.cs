@@ -14,13 +14,18 @@ namespace TreasuryFixTool.Infrastructure.Storage
 
         /// <summary>
         /// The directory for log files.
-        /// </public>
+        /// </summary>
         public static string LogsDirectory => System.IO.Path.Combine(BaseDirectory, "Logs");
 
         /// <summary>
-        /// The directory for escalation reports.
+        /// The directory for escalation reports and tickets.
         /// </summary>
         public static string EscalationsDirectory => System.IO.Path.Combine(BaseDirectory, "Escalations");
+
+        /// <summary>
+        /// The directory for application data (tickets, configurations).
+        /// </summary>
+        public static string AppDataDirectory => System.IO.Path.Combine(BaseDirectory, "AppData");
 
         /// <summary>
         /// The directory for deployment files.
