@@ -294,10 +294,9 @@ namespace TreasuryFixTool.Diagnostics
                     };
                 }
 
-                // Try to ping a domain controller (using environment variable or fallback)
-                string dcName = Environment.GetEnvironmentVariable("USERDNSDOMAIN");
-                if (string.IsNullOrEmpty(dcName))
-                    dcName = "contoso.com"; // fallback example
+// Try to ping a domain controller (using environment variable or fallback)
+                 string? dcName = Environment.GetEnvironmentVariable("USERDNSDOMAIN");
+                 dcName = string.IsNullOrWhiteSpace(dcName) ? "contoso.com" : dcName;
 
                 using var ping = new Ping();
                 var reply = ping.Send(dcName, 3000);
@@ -405,8 +404,8 @@ namespace TreasuryFixTool.Diagnostics
                     .Cast<ManagementObject>()
                     .Where(e => 
                         e["Message"] != null && 
-                        (e["Message"].ToString().Contains("0x80070002") || 
-                         e["Message"].ToString().Contains("Windows Update")))
+                        (e["Message"].ToString()?.Contains("0x80070002") == true || 
+                         e["Message"].ToString()?.Contains("Windows Update") == true))
                     .ToList();
 
                 if (errors.Any())

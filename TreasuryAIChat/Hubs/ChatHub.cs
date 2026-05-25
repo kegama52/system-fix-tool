@@ -83,9 +83,7 @@ public class ChatHub : Hub
 
         var aiMsg = new ChatMessageDto(Guid.NewGuid().ToString(), conversationId, "ai",
             fullReply.ToString(), DateTimeOffset.UtcNow, true)
-        {
-            From = "AI Support", Time = DateTime.Now.ToString("HH:mm"), CssClass = "ai"
-        };
+        { CssClass = "ai" };
         _conv.Add(aiMsg);
 
         await Clients.Caller.SendAsync("ReceiveAIResponseChunk", new
@@ -112,7 +110,7 @@ public class ChatHub : Hub
                                               lastMsg[..Math.Min(200, lastMsg.Length)]);
         _conv.TryRequestHandoff(conversationId, request);
 
-        await Clients.All.SendAsync("AgentHandoffRequested", new { request.ConversationId, request.LastMessage, ActiveAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm") });
+        await Clients.All.SendAsync("AgentHandoffRequested", new { request.ConversationId, request.LastMessage, request.ActiveAt });
         await Clients.Caller.SendAsync("Reply", new { Content = "An ICT support agent is being notified. Please hold.", Time = DateTime.UtcNow.ToString("HH:mm"), From = "System" });
 
         _ = _audit.LogAsync(new AuditEntry("agent_handoff", conversationId, request.LastMessage));

@@ -1,0 +1,96 @@
+<Window x:Class="TreasuryFixTool.Views.RegistrationWindow"
+           xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+           Title="Staff Registration - TreasuryFixTool" 
+           Height="580" Width="800"
+           WindowStartupLocation="CenterScreen"
+           Background="#F4F6F9">
+    
+    <Window.Resources>
+        <Style TargetType="TextBlock" BasedOn="{StaticResource BodyTextStyle}"/>
+        <Style TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}"/>
+        <Style TargetType="PasswordBox" BasedOn="{StaticResource TextBoxStyle}"/>
+        <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBoxStyle}"/>
+        <Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}"/>
+    </Window.Resources>
+
+    <Grid>
+        <Border Style="{StaticResource CardStyle}" Effect="{StaticResource SubtleShadow}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="30">
+                    
+                    <!-- Header -->
+                    <StackPanel Margin="0,0,0,25">
+                        <TextBlock Text="Register New Staff Member" 
+                                  Style="{StaticResource HeaderTextStyle}" 
+                                  FontSize="24"/>
+                        <TextBlock Text="Complete the form below to create a new staff account in the system." 
+                                  Style="{StaticResource BodyTextStyle}" 
+                                  Margin="0,5,0,0"/>
+                    </StackPanel>
+
+                    <!-- Form Grid -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Left Column -->
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Government ID *" Style="{StaticResource BodyTextStyle}"/>
+                            <TextBox x:Name="TxtGovernmentId" Height="38" VerticalContentAlignment="Center" Margin="0,4,0,15"/>
+
+                            <TextBlock Text="First Name *" Style="{StaticResource BodyTextStyle}"/>
+                            <TextBox x:Name="TxtFirstName" Height="38" VerticalContentAlignment="Center" Margin="0,4,0,15"/>
+
+                            <TextBlock Text="Last Name *" Style="{StaticResource BodyTextStyle}"/>
+                            <TextBox x:Name="TxtLastName" Height="38" VerticalContentAlignment="Center" Margin="0,4,0,15"/>
+
+                            <TextBlock Text="Phone Number" Style="{StaticResource BodyTextStyle}"/>
+                            <TextBox x:Name="TxtPhone" Height="38" VerticalContentAlignment="Center" Margin="0,4,0,15"/>
+                        </StackPanel>
+
+                        <!-- Right Column -->
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Email Address *" Style="{StaticResource BodyTextStyle}"/>
+                            <TextBox x:Name="TxtEmail" Height="38" VerticalContentAlignment="Center" Margin="0,4,0,15"/>
+
+                            <TextBlock Text="Password *" Style="{StaticResource BodyTextStyle}"/>
+                            <PasswordBox x:Name="TxtPassword" Height="38" Margin="0,4,0,15"/>
+
+                            <TextBlock Text="Confirm Password *" Style="{StaticResource BodyTextStyle}"/>
+                            <PasswordBox x:Name="TxtConfirmPassword" Height="38" Margin="0,4,0,15"/>
+
+<TextBlock Text="Assigned Unit" Style="{StaticResource BodyTextStyle}"/>
+                             <ComboBox x:Name="CboUnit" Height="38" Margin="0,4,0,15" 
+                                       DisplayMemberPath="Display"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Role Selection -->
+                    <TextBlock Text="Role" Style="{StaticResource BodyTextStyle}" Margin="0,10,0,4"/>
+                    <ComboBox x:Name="CboRole" Height="38">
+                        <ComboBoxItem Content="Officer" IsSelected="True"/>
+                        <ComboBoxItem Content="ICT Officer"/>
+                        <ComboBoxItem Content="ICT Supervisor"/>
+                        <ComboBoxItem Content="Admin"/>
+                        <ComboBoxItem Content="Auditor"/>
+                    </ComboBox>
+
+                    <!-- Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,30,0,0">
+                        <Button x:Name="BtnCancel" Content="Cancel" 
+                                Style="{StaticResource OutlineButtonStyle}" 
+                                Width="100" Height="40" Margin="0,0,10,0"
+                                Click="BtnCancel_Click"/>
+                        <Button x:Name="BtnRegister" Content="Register Staff" 
+                                Width="150" Height="40"
+                                Click="BtnRegister_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</Window>

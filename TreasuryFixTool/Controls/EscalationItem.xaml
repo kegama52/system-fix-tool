@@ -1,0 +1,34 @@
+<UserControl x:Class="TreasuryFixTool.Controls.EscalationItem"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border x:Name="RootBorder" Style="{StaticResource EscalationItemStyle}" Effect="{StaticResource SubtleShadow}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Severity Indicator -->
+            <Border x:Name="LeftBorder" Grid.Column="0" Width="4" Background="#6C757D" 
+                   VerticalAlignment="Stretch" CornerRadius="2"/>
+
+            <!-- Content -->
+            <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" 
+                          FontSize="10" Style="{StaticResource BodyTextStyle}"
+                          Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding CheckName}" FontWeight="SemiBold" 
+                          FontSize="13" Style="{StaticResource HeaderTextStyle}"
+                          Margin="0,0,0,6"/>
+                <TextBlock Text="{Binding Message}" FontSize="12" 
+                          TextWrapping="Wrap" MaxHeight="60"/>
+            </StackPanel>
+
+            <!-- Actions Dropdown -->
+            <ToggleButton Grid.Column="2" x:Name="ActionsMenu" Content="⋯"
+                         Width="32" Height="32" FontSize="18" FontWeight="Bold"
+                         Background="Transparent" BorderThickness="0"/>
+        </Grid>
+    </Border>
+</UserControl>

@@ -1,7 +1,8 @@
 @page "/chat"
 @using Microsoft.AspNetCore.SignalR.Client
-@using System.Text
 @using System.Net
+@using System.Text
+@using Microsoft.AspNetCore.Components.Web
 @using TreasuryAIChat.Models
 @inject NavigationManager Nav
 @inject IConfiguration Config
@@ -13,8 +14,8 @@
         <div>
             <h3>Treasury AI Support</h3>
             <small>
-                <span class="@(IsConnected ? "dot-on" : "dot-off")">●</span>
-                @(IsConnected ? "Online — AI assistant ready" : "Connecting…")
+                <span class="@(_isConnected ? "dot-on" : "dot-off")">●</span>
+                @(_isConnected ? "Online — AI assistant ready" : "Connecting…")
             </small>
         </div>
     </div>
@@ -92,7 +93,7 @@
 
         _hub.On<string>("ShowKBSuggestions", payload =>
         {
-            _messages.Add(new ChatMsg { Who = "📚 Knowledge Base", Text = Markup.Escape(payload), When = DateTime.Now.ToString("HH:mm"), CssClass = "sys" });
+            _messages.Add(new ChatMsg { Who = "📚 Knowledge Base", Text = System.Text.RegularExpressions.Regex.Replace(System.Net.WebUtility.HtmlEncode(payload), @"\n", "<br/>"), When = DateTime.Now.ToString("HH:mm"), CssClass = "sys" });
             StateHasChanged();
         });
 

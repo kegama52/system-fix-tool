@@ -33,11 +33,11 @@ public class PostgreAuditLogger : IAuditLogger
         _log       = log;
     }
 
-    public async Task LogAsync(AuditEntry entry, CancellationToken ct = default)
-    {
-        try
+        public async Task LogAsync(AuditEntry entry, CancellationToken ct = default)
         {
-            await using var db = _dbFactory.CreateDbContext(ct);
+            try
+            {
+                await using var db = _dbFactory.CreateDbContext();
             db.AuditLogs.Add(new AuditLogEntity
             {
                 Id            = entry.Id,

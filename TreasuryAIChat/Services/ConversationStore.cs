@@ -27,10 +27,15 @@ public class ConversationStore
 
     public void CompleteAiMessage(string conversationId, string content)
     {
-        if (_conversations.TryGetValue(conversationId, out var list) &&
-            list.LastOrDefault(m => m.Sender == "ai" && !m.IsComplete) is { } pending)
+        if (!_conversations.TryGetValue(conversationId, out var list)) return;
+
+        for (int i = 0; i < list.Count; i++)
         {
-            pending = pending with { IsComplete = true, Content = content };
+            if (list[i].Sender == "ai" && !list[i].IsComplete)
+            {
+                list[i] = list[i] with { IsComplete = true, Content = content };
+                return;
+            }
         }
     }
 

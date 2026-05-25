@@ -10,8 +10,15 @@ var builder = WebApplication.CreateBuilder(args);
 // ── Kestrel ─────────────────────────────────────────────────────────────────
 builder.WebHost.ConfigureKestrel(o =>
 {
-    o.Listen(System.Net.IPAddress.Any, 5000);
-    o.Listen(System.Net.IPAddress.Any, 5001, l => l.UseHttps());
+    var urls = builder.Configuration["Kestrel:Urls"];
+    if (!string.IsNullOrWhiteSpace(urls))
+    {
+        foreach (var url in urls.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var uri = new Uri(url);
+            o.Listen(System.Net.IPAddress.Any, uri.Port);
+        }
+    }
 });
 
 // ── Configuration ─────────────────────────────────────────────────────────────
@@ -23,7 +30,7 @@ var connStr = builder.Configuration.GetConnectionString("TiisgsDb")
               ?? "Host=localhost;Port=5324;Database=tiisgs_db;Username=postgres;Password=your_password_here;";
 
 builder.Services.AddDbContextFactory<TasksDbContext>(o =>
-    o.UseNpgsql(connStr, npgsql => npgsql.UseVector()));
+    o.UseNpgsql(connStr));
 
 // ── Chat services ────────────────────────────────────────────────────────────
 builder.Services.AddRazorComponents()
@@ -39,6 +46,7 @@ builder.Services.AddSingleton<ConversationStore>();
 builder.Services.AddScoped<IKnowledgeBaseService, TreasuryKnowledgeBaseService>();
 builder.Services.AddScoped<IAIChatService>(sp => ChatServiceFactory.Build(sp.GetRequiredService<IConfiguration>()));
 builder.Services.AddScoped<IAuditLogger, PostgreAuditLogger>();
+builder.Services.AddScoped<IAIEscalationService, MockEscalationService>();
 
 // ── Response compression ─────────────────────────────────────────────────────
 builder.Services.AddResponseCompression(o =>
@@ -62,7 +70,7 @@ app.UseAntiforgery();
 app.UseResponseCompression();
 app.MapStaticAssets();
 app.MapHub<ChatHub>("/chathub");
-app.MapRazorComponents<App>()
+app.MapRazorComponents<TreasuryAIChat.Components.App>()
    .AddInteractiveServerRenderMode();
-app.MapFallbackToPage("/_Host");
+app.MapFallbackToFile("index.html");
 app.Run();

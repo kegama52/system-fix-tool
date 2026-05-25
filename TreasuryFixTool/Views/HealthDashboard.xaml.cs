@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,8 +26,12 @@ namespace TreasuryFixTool.Views
     /// Completely rewritten: metric card dashboard, escalation panel,
     /// real-time scan with progress, collapsible colour-coded log, export.
     /// </summary>
-    public partial class HealthDashboard : UserControl
+    public partial class HealthDashboard : UserControl, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected void OnPropertyChanged(string propertyName) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         // ─── Services ──────────────────────────────────────────────────
         private readonly DiagnosticEngine          _diagnosticEngine;
         private readonly FixEngine                 _fixEngine;
@@ -100,6 +105,7 @@ namespace TreasuryFixTool.Views
         public HealthDashboard()
         {
             InitializeComponent();
+            DataContext = this;
 
             _diagnosticEngine = new DiagnosticEngine();
             _fixEngine        = new FixEngine();
@@ -554,15 +560,15 @@ namespace TreasuryFixTool.Views
             var memResult  = results.FirstOrDefault(r => r.CheckName.Contains("Memory"));
             var diskResult = results.FirstOrDefault(r => r.CheckName.Contains("Disk"));
             var netResult  = results.FirstOrDefault(r => r.CheckName.Contains("Network"));
-            bool dbOk = memResult != null && memResult.Status is not CheckStatus.Critical or CheckStatus.Error
-                     && diskResult != null && diskResult.Status is not CheckStatus.Critical or CheckStatus.Error;
+bool dbOk = memResult != null && memResult.Status != CheckStatus.Critical && memResult.Status != CheckStatus.Error
+                      && diskResult != null && diskResult.Status != CheckStatus.Critical && diskResult.Status != CheckStatus.Error;
             SetCard(4,
                 value : dbOk ? "Connected" : "Connection Issue",
                 status: dbOk ? "Database reachable" : "DB may be unreachable",
                 dot   : dbOk ? Colors.LimeGreen : Colors.Red);
 
             // ── 5 – API / Service Status ────────────────────────────────
-            bool svcOk = netResult != null && netResult.Status is not CheckStatus.Critical or CheckStatus.Error;
+            bool svcOk = netResult != null && netResult.Status != CheckStatus.Critical && netResult.Status != CheckStatus.Error;
             bool partial = failed > 0 && failed < passed;
             SetCard(5,
                 value : svcOk && !partial ? "Online" : partial ? "Partial" : "Offline",
@@ -888,14 +894,12 @@ namespace TreasuryFixTool.Views
 
         private void SendUpdate_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button { Tag: DateTime timestamp }) return;
-            var item = _activeEscalations.FirstOrDefault(i => i.Timestamp == timestamp);
-            if (item == null) return;
+            if (sender is not Button { Tag: EscalationItem item }) return;
 
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
                 Filter = "Text Files|*.txt",
-                FileName = $"Update_{timestamp:yyyyMMdd_HHmmss}.txt"
+                FileName = $"Update_{item.Timestamp:yyyyMMdd_HHmmss}.txt"
             };
 
             if (dialog.ShowDialog() != true) return;
@@ -957,6 +961,27 @@ namespace TreasuryFixTool.Views
             public string   Severity    { get; set; } = "Medium";
             public string   Description { get; set; } = "";
             public string   Team        { get; set; } = "";
+
+            public Brush SeverityBadgeBackground => Severity switch
+            {
+                "High"   => new SolidColorBrush(Color.FromRgb(0xC0, 0x39, 0x2B)),
+                "Medium" => new SolidColorBrush(Color.FromRgb(0xE6, 0x7E, 0x22)),
+                "Low"    => new SolidColorBrush(Color.FromRgb(0x27, 0xAE, 0x60)),
+                _         => new SolidColorBrush(Color.FromRgb(0x95, 0xA5, 0xA6))
+            };
+
+            public string AgeText
+            {
+                get
+                {
+                    var age = DateTime.Now - Timestamp;
+                    if (age.TotalHours >= 1)
+                        return $"{(int)age.TotalHours}h ago";
+                    if (age.TotalMinutes >= 1)
+                        return $"{(int)age.TotalMinutes}m ago";
+                    return "Just now";
+                }
+            }
         }
 
         // ==================================================================
@@ -994,28 +1019,28 @@ namespace TreasuryFixTool.Views
         public Brush CurrentBg
         {
             get => _currentBg;
-            set { _currentBg = value; }
+            set { _currentBg = value; OnPropertyChanged(nameof(CurrentBg)); }
         }
 
         private Brush _currentHeaderBrush = HeaderBgLight;
         public Brush CurrentHeaderBrush
         {
             get => _currentHeaderBrush;
-            set { _currentHeaderBrush = value; }
+            set { _currentHeaderBrush = value; OnPropertyChanged(nameof(CurrentHeaderBrush)); }
         }
 
         private Brush _currentHeaderTextBrush = HeaderTxtLight;
         public Brush CurrentHeaderTextBrush
         {
             get => _currentHeaderTextBrush;
-            set { _currentHeaderTextBrush = value; }
+            set { _currentHeaderTextBrush = value; OnPropertyChanged(nameof(CurrentHeaderTextBrush)); }
         }
 
         private Brush _currentPanelBg = PanelBgLight;
         public Brush CurrentPanelBg
         {
             get => _currentPanelBg;
-            set { _currentPanelBg = value; }
+            set { _currentPanelBg = value; OnPropertyChanged(nameof(CurrentPanelBg)); }
         }
 
         // ==================================================================
@@ -1129,6 +1154,12 @@ namespace TreasuryFixTool.Views
             {
                 ToastManager.ShowToast("Error", $"Failed to generate report: {ex.Message}", 5000, ToastIcon.Error);
             }
+        }
+
+        private void StaffRegistration_Click(object sender, RoutedEventArgs e)
+        {
+            var staffReg = new RegistrationWindow();
+            staffReg.ShowDialog();
         }
 
         private async void EmailSupport_Click(object sender, RoutedEventArgs e)

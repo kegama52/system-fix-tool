@@ -33,19 +33,20 @@ using TreasuryFixTool.Models;
 namespace TreasuryFixTool;
 
 public partial class MainWindow : Window
-{
-    private readonly FileLogger          _logger;
-    private readonly AppConfig           _config;
-    private readonly UpdateManager       _updateMgr;
-    private readonly UsbUpdateHandler?   _usbHandler;
-    private TrayManager?        _trayManager;
-    private BackgroundMonitor?  _monitor;
-    private SelfTestService?    _selfTest;
+    {
+        private readonly FileLogger          _logger;
+        private readonly SystemMetricsMonitor? _metricsMonitor;
+     private readonly AppConfig           _config;
+     private readonly UpdateManager       _updateMgr;
+     private readonly UsbUpdateHandler?   _usbHandler;
+     private SelfTestService?    _selfTest;
     private List<string>       _attachedFiles    = new();
     private DiagnosticEngine?  _diagnosticEngine;
 
     private readonly TicketRepository _ticketRepo;
     private readonly IConfiguration _dbConfig;
+
+    private sealed record ProcessMemoryInfo(string ProcessName, int Id, double RamUsageMB, string Status);
 
     public MainWindow()
     {
@@ -57,7 +58,7 @@ public partial class MainWindow : Window
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .Build();
 
-        string connStr = _dbConfig["Database:ConnectionString"] 
+        string connStr = _dbConfig.GetConnectionString("TiisgsDb") 
             ?? throw new InvalidOperationException("Database connection string missing in appsettings.json");
         _ticketRepo = new TicketRepository(connStr);
 
@@ -71,9 +72,13 @@ public partial class MainWindow : Window
         _usbHandler= new UsbUpdateHandler();
         _selfTest  = new SelfTestService(_logger);
 
+        // Initialize system performance monitoring if UI elements exist
+        _metricsMonitor = CpuCanvas != null && RamCanvas != null && CpuText != null && RamText != null
+            ? new SystemMetricsMonitor(CpuCanvas, RamCanvas, CpuText, RamText)
+            : null;
+
         AppStatusBar.Text = $"TreasuryFixTool v1.0  |  {Environment.MachineName}  |  Offline Mode — National Treasury";
 
-        AttachTrayIfInSilentMode();
         InitializeEscalationTab();
     }
 
@@ -159,31 +164,7 @@ public partial class MainWindow : Window
         AppStatusBar.Text = "Fix execution complete.";
     }
 
-    // ─── Silent-start ──────────────────────────────────────────────────────
-    private void AttachTrayIfInSilentMode()
-    {
-        string[] args = Environment.GetCommandLineArgs();
-        bool silent   = Array.Exists(args, a
-                                => a.Equals("/silent-start", StringComparison.OrdinalIgnoreCase));
-        if (!silent) return;
 
-        _trayManager = new TrayManager(this);
-
-        // Attach tray banner inside the main window's content grid
-        if (FindName("MainTabControl") is TabControl tc)
-            _trayManager.AttachTo(tc.Parent as Grid);
-
-        _monitor = new BackgroundMonitor(new DiagnosticEngine(), _trayManager);
-        _monitor.Start();
-
-        Task.Run(async () =>
-        {
-            await Task.Delay(2000);
-            Dispatcher.Invoke(() => _trayManager?.Alert("Background health check running…"));
-        });
-
-        Hide();
-    }
 
     // ─── Escalation tab ────────────────────────────────────────────────────
     private void InitializeEscalationTab()
@@ -343,6 +324,104 @@ public partial class MainWindow : Window
         {
             ToastManager.ShowToast("Error", $"Cannot open browser: {ex.Message}", 4000, ToastIcon.Error);
         }
+    }
+
+    private void ViewProcessesBtn_Click(object sender, RoutedEventArgs e)
+    {
+        var processes = GetRunningProcessesByMemory();
+        var window = new Window
+        {
+            Title = "Task Manager - Top Processes by RAM",
+            Width = 820,
+            Height = 540,
+            Content = CreateProcessManagerView(processes),
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        window.Show();
+    }
+
+    private static List<ProcessMemoryInfo> GetRunningProcessesByMemory()
+    {
+        var results = new List<ProcessMemoryInfo>();
+
+        foreach (Process process in Process.GetProcesses())
+        {
+            using (process)
+            {
+                try
+                {
+                    if (process.HasExited)
+                        continue;
+
+                    double memoryMb = Math.Round(process.WorkingSet64 / 1024.0 / 1024.0, 1);
+                    string status = process.HasExited ? "Exited"
+                        : process.Responding ? "Running"
+                        : "Not Responding";
+
+                    results.Add(new ProcessMemoryInfo(
+                        ProcessName: string.IsNullOrWhiteSpace(process.ProcessName) ? "Unknown" : process.ProcessName,
+                        Id: process.Id,
+                        RamUsageMB: memoryMb,
+                        Status: status));
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+        }
+
+        return results
+            .OrderByDescending(p => p.RamUsageMB)
+            .ThenBy(p => p.ProcessName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static UIElement CreateProcessManagerView(IEnumerable<ProcessMemoryInfo> processes)
+    {
+        var grid = new DataGrid
+        {
+            IsReadOnly = true,
+            AutoGenerateColumns = false,
+            CanUserAddRows = false,
+            Margin = new Thickness(8),
+            ItemsSource = processes,
+            SelectionMode = DataGridSelectionMode.Single
+        };
+
+        grid.Columns.Add(new DataGridTextColumn
+        {
+            Header = "Process Name",
+            Binding = new System.Windows.Data.Binding("ProcessName"),
+            Width = new DataGridLength(2, DataGridLengthUnitType.Star)
+        });
+        grid.Columns.Add(new DataGridTextColumn
+        {
+            Header = "PID",
+            Binding = new System.Windows.Data.Binding("Id"),
+            Width = new DataGridLength(1, DataGridLengthUnitType.Auto)
+        });
+        grid.Columns.Add(new DataGridTextColumn
+        {
+            Header = "RAM (MB)",
+            Binding = new System.Windows.Data.Binding("RamUsageMB"),
+            Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+        });
+        grid.Columns.Add(new DataGridTextColumn
+        {
+            Header = "Status",
+            Binding = new System.Windows.Data.Binding("Status"),
+            Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+        });
+
+        return new ScrollViewer
+        {
+            Content = grid,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
     }
 
     private void PrintIssuesReport_Click(object sender, RoutedEventArgs e)
@@ -590,5 +669,11 @@ public partial class MainWindow : Window
             ToastManager.ShowToast("Database Error", 
                 $"Failed to create ticket: {ex.Message}", 6000, ToastIcon.Error);
         }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _metricsMonitor?.Dispose();
+        base.OnClosed(e);
     }
 }

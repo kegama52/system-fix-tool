@@ -1,6 +1,8 @@
 @page "/agent-dashboard"
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.Text
+@using System.Net
+@using Microsoft.AspNetCore.Components.Web
 @using TreasuryAIChat.Models
 @inject NavigationManager Nav
 @implements IAsyncDisposable
@@ -121,13 +123,13 @@
         // Poll queue every 5 s
         _ = Task.Run(async () =>
         {
-            var tcs = new();
-            using var t = new System.Threading.Timer(_ => tcs.TrySetResult(), null, 5000, 5000);
+            var tcs = new TaskCompletionSource<bool>();
+            using var t = new System.Threading.Timer(_ => tcs.TrySetResult(true), null, 5000, 5000);
             while (!tcs.Task.IsCompleted)
             {
                 await tcs.Task;
                 try { await _hub!.SendAsync("GetActiveHandoffs"); } catch { break; }
-                tcs = new TaskCompletionSource();
+                tcs = new TaskCompletionSource<bool>();
             }
         });
     }
@@ -144,7 +146,7 @@
     private async Task LeaveSession()
     {
         if (_sessionId is null) return;
-        try { await _hub!.Groups.RemoveFromGroupAsync(_sessionId, Context.Aborted); } catch { }
+        try { await _hub!.SendAsync("LeaveConversation", _sessionId!, CancellationToken.None); } catch { }
         _sessionId = null;
         StateHasChanged();
     }
